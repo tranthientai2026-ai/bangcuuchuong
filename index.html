@@ -54,7 +54,7 @@
             </div>
             <div>
                 <h1 class="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">Bé Giỏi Bảng Cửu Chương</h1>
-                <p class="text-[11px] text-slate-400 font-semibold">Ôn tập thông minh • Ôn lại câu hay quên</p>
+                <p class="text-[11px] text-slate-400 font-semibold">Ôn tập thông minh • Âm thanh Audition • Giọng đọc</p>
             </div>
         </div>
 
@@ -124,14 +124,19 @@
             <!-- LEFT: QUESTION CARD & DISPLAY -->
             <div class="md:col-span-7 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center justify-between min-h-[360px] relative">
 
-                <!-- Priority Badge for Spaced Repetition -->
+                <!-- Priority Badge for Spaced Repetition & Audio Read Button -->
                 <div class="w-full flex justify-between items-center">
                     <span id="spaced-badge" class="text-[10px] font-extrabold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200 flex items-center gap-1 hidden">
                         <i class="fa-solid fa-rotate text-amber-500"></i> Câu bé hay quên - Ôn lại
                     </span>
-                    <span id="streak-toast" class="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md hidden">
-                        🔥 Combo x2
-                    </span>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button onclick="readQuestionSpeech()" title="Đọc to đề bài" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 transition">
+                            <i class="fa-solid fa-volume-high"></i> Đọc đề
+                        </button>
+                        <span id="streak-toast" class="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md hidden">
+                            🔥 Combo x2
+                        </span>
+                    </div>
                 </div>
 
                 <!-- MAIN QUESTION BOX -->
@@ -146,6 +151,14 @@
                             <span id="ans-text" class="text-indigo-600">?</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- VOICE INPUT BUTTON FOR KIDS -->
+                <div class="w-full flex justify-center mb-1">
+                    <button id="mic-btn" onclick="toggleVoiceRecognition()" class="w-full sm:w-auto bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-microphone text-lg" id="mic-icon"></i>
+                        <span id="mic-text">Bé bấm vào đây để NÓI ĐÁP ÁN 🎙️</span>
+                    </button>
                 </div>
 
                 <!-- FEEDBACK & HINT MESSAGE BOX -->
@@ -192,7 +205,7 @@
 
     <!-- FOOTER -->
     <footer class="text-center text-[11px] text-slate-400 py-1">
-        Bé Giỏi Bảng Cửu Chương • Học thông minh với Spaced Repetition
+        Bé Giỏi Bảng Cửu Chương • Học thông minh với Spaced Repetition & Audition Sound
     </footer>
 
     <!-- MODAL 1: GÓC PHỤ HUYNH & THỐNG KÊ SPACED REPETITION -->
@@ -272,6 +285,88 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
+        // Web Audio API & Audition-Style Sound Synthesizer
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type, streakCount = 1) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } 
+                else if (type === 'correct') {
+                    // Audition Pitch Shift scale based on streak (C5 -> D5 -> E5 -> F5 -> G5 -> A5 -> B5 -> C6...)
+                    const baseFreq = 523.25; // C5
+                    const scaleIntervals = [0, 2, 4, 5, 7, 9, 11, 12]; // Major scale steps
+                    const stepIndex = Math.min(streakCount - 1, scaleIntervals.length - 1);
+                    const semitones = scaleIntervals[stepIndex];
+                    const freq = baseFreq * Math.pow(2, semitones / 12);
+
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } 
+                else if (type === 'wrong') {
+                    // Gentle low wobble for incorrect answer (no correct answer reveal)
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.linearRampToValueAtTime(120, now + 0.3);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } 
+                else if (type === 'fanfare') {
+                    // Audition Perfect Arpeggio Bell Synth
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                    notes.forEach((f, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(f, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.1, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.3);
+                    });
+                }
+            } catch (e) {}
+        }
+
         // Game State & Spaced Repetition Engine
         let selectedTables = [2, 3, 4, 5, 6, 7, 8, 9];
         let currentMode = 'practice'; // 'practice' | 'challenge'
@@ -280,6 +375,7 @@
         let currentNumB = 2;
         let currentAnswerInput = '';
         let isSpacedRepetitionQuestion = false;
+        let questionWeights = {};
 
         let score = 0;
         let streak = 0;
@@ -292,125 +388,136 @@
         let isChallengeActive = false;
         let soundEnabled = true;
 
-        // Memory weights for Spaced Repetition (key: "AxB", value: weight score)
-        // Higher weight = Needs more practice
-        let questionWeights = {};
+        // Speech Recognition & Speech Synthesis (Voice Feature)
+        let isListening = false;
+        let recognition = null;
 
-        // Web Audio API
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'vi-VN';
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
-        // Audition-style Pitch Scale (Diatonic C Major Scale frequencies from C5 to C6)
-        const AUDITION_PITCH_SCALE = [
-            523.25, // C5 (Streak 1)
-            587.33, // D5 (Streak 2)
-            659.25, // E5 (Streak 3)
-            698.46, // F5 (Streak 4)
-            783.99, // G5 (Streak 5)
-            880.00, // A5 (Streak 6)
-            987.77, // B5 (Streak 7)
-            1046.50,// C6 (Streak 8)
-            1174.66,// D6 (Streak 9)
-            1318.51 // E6 (Streak 10+)
-        ];
-
-        function playSound(type, extraData = 0) {
-            if (!soundEnabled) return;
-            try {
-                if (!audioCtx) audioCtx = new AudioContext();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-
-                const now = audioCtx.currentTime;
-
-                if (type === 'click') {
-                    // Soft crisp click
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(600, now);
-                    osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
-                    gain.gain.setValueAtTime(0.05, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-
-                    osc.start(now);
-                    osc.stop(now + 0.03);
-
-                } else if (type === 'correct') {
-                    // Audition Combo Pitch Up Sound
-                    const currentStreak = extraData;
-                    const scaleIndex = Math.min(Math.max(0, currentStreak - 1), AUDITION_PITCH_SCALE.length - 1);
-                    const baseFreq = AUDITION_PITCH_SCALE[scaleIndex];
-
-                    // Main Pluck Synth
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(baseFreq, now);
-                    
-                    // Add pitch bend upward for dynamic Audition feel
-                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.15, now + 0.12);
-
-                    gain.gain.setValueAtTime(0.12, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(now);
-                    osc.stop(now + 0.25);
-
-                    // Sparkle Sub-harmonic for higher combos
-                    if (currentStreak > 3) {
-                        const sparkle = audioCtx.createOscillator();
-                        const sparkleGain = audioCtx.createGain();
-                        sparkle.type = 'sine';
-                        sparkle.frequency.setValueAtTime(baseFreq * 2, now + 0.05);
-                        sparkleGain.gain.setValueAtTime(0.04, now + 0.05);
-                        sparkleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-
-                        sparkle.connect(sparkleGain);
-                        sparkleGain.connect(audioCtx.destination);
-                        sparkle.start(now + 0.05);
-                        sparkle.stop(now + 0.2);
-                    }
-
-                } else if (type === 'fanfare') {
-                    // Audition "PERFECT!" Arpeggio Chord Sound (C Major 7th chord burst)
-                    const chordFreqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
-                    chordFreqs.forEach((freq, idx) => {
-                        const noteOsc = audioCtx.createOscillator();
-                        const noteGain = audioCtx.createGain();
-                        const startTime = now + (idx * 0.04); // Quick arpeggio sequence
-
-                        noteOsc.type = 'sine';
-                        noteOsc.frequency.setValueAtTime(freq, startTime);
-                        noteGain.gain.setValueAtTime(0.1, startTime);
-                        noteGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
-
-                        noteOsc.connect(noteGain);
-                        noteGain.connect(audioCtx.destination);
-                        noteOsc.start(startTime);
-                        noteOsc.stop(startTime + 0.35);
-                    });
-
-                } else if (type === 'wrong') {
-                    // Gentle "Oops" Sub-wobble bass (encouraging, not harsh)
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(220, now);
-                    osc.frequency.exponentialRampToValueAtTime(130, now + 0.25);
-
-                    gain.gain.setValueAtTime(0.08, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(now);
-                    osc.stop(now + 0.25);
+            recognition.onstart = function() {
+                isListening = true;
+                const micBtn = document.getElementById('mic-btn');
+                if (micBtn) {
+                    micBtn.className = "w-full sm:w-auto bg-rose-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow-md animate-pulse flex items-center justify-center gap-2 text-sm";
+                    document.getElementById('mic-icon').className = "fa-solid fa-microphone-lines text-lg text-yellow-300";
+                    document.getElementById('mic-text').textContent = "Đang lắng nghe... Bé hãy nói số kết quả!";
                 }
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript.trim();
+                parseVoiceAnswer(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                stopListeningUI();
+                setFeedbackMsg(`Chưa nghe rõ câu trả lời, bé thử bấm nút micro nói lại hoặc dùng bàn phím nhe!`, 'neutral');
+            };
+
+            recognition.onend = function() {
+                stopListeningUI();
+            };
+        }
+
+        function toggleVoiceRecognition() {
+            playSound('click');
+            if (!recognition) {
+                alert("Trình duyệt hiện tại không hỗ trợ nhận diện giọng nói. Bé hãy sử dụng bàn phím số nhe!");
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+            } else {
+                try { recognition.start(); } catch(e) {}
+            }
+        }
+
+        function stopListeningUI() {
+            isListening = false;
+            const micBtn = document.getElementById('mic-btn');
+            if (micBtn) {
+                micBtn.className = "w-full sm:w-auto bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center gap-2 text-sm";
+                document.getElementById('mic-icon').className = "fa-solid fa-microphone text-lg";
+                document.getElementById('mic-text').textContent = "Bé bấm vào đây để NÓI ĐÁP ÁN 🎙️";
+            }
+        }
+
+        // Parse voice spoken input into digits
+        function parseVoiceAnswer(spokenText) {
+            const numberMap = {
+                "không": 0, "một": 1, "mốt": 1, "hai": 2, "ba": 3, "bốn": 4, "tư": 4, "năm": 5, "lăm": 5,
+                "sáu": 6, "bảy": 7, "tám": 8, "chín": 9, "mười": 10
+            };
+
+            let digits = spokenText.replace(/[^0-9]/g, '');
+
+            if (!digits) {
+                const textLower = spokenText.toLowerCase();
+                for (let word in numberMap) {
+                    if (textLower.includes(word)) {
+                        digits = numberMap[word].toString();
+                        break;
+                    }
+                }
+            }
+
+            if (digits) {
+                currentAnswerInput = digits;
+                document.getElementById('ans-text').textContent = currentAnswerInput;
+                submitAnswer();
+            } else {
+                setFeedbackMsg(`Bé vừa nói "${spokenText}", máy chưa đọc được số. Bé nói lại số rõ hơn nhe!`, 'neutral');
+            }
+        }
+
+        // Text-To-Speech: Read question out loud
+        function readQuestionSpeech() {
+            if (!soundEnabled || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
+                const textToRead = `${currentNumA} nhân ${currentNumB} bằng bao nhiêu?`;
+                const utterance = new SpeechSynthesisUtterance(textToRead);
+                utterance.lang = 'vi-VN';
+                utterance.rate = 0.85;
+                utterance.pitch = 1.1;
+
+                const voices = window.speechSynthesis.getVoices();
+                const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
+                if (viVoice) {
+                    utterance.voice = viVoice;
+                }
+
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {}
+        }
+
+        // Text-To-Speech: Speak correct/incorrect feedback
+        function speakFeedbackText(text) {
+            if (!soundEnabled || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'vi-VN';
+                utterance.rate = 0.95;
+
+                const voices = window.speechSynthesis.getVoices();
+                const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
+                if (viVoice) {
+                    utterance.voice = viVoice;
+                }
+
+                window.speechSynthesis.speak(utterance);
             } catch (e) {}
         }
 
@@ -427,7 +534,6 @@
             generateQuestion();
         };
 
-        // Initialize question memory weights (Default = 10)
         function initWeights() {
             for (let a = 2; a <= 9; a++) {
                 for (let b = 1; b <= 10; b++) {
@@ -477,11 +583,9 @@
             generateQuestion();
         }
 
-        // Spaced Repetition Question Generator
         function generateQuestion() {
             if (selectedTables.length === 0) selectedTables = [2];
 
-            // 70% probability to pick a high-weight (frequently forgotten) question
             const useSpacedRepetition = Math.random() < 0.7;
             let candidates = [];
 
@@ -494,15 +598,12 @@
             });
 
             if (useSpacedRepetition && candidates.some(c => c.weight > 10)) {
-                // Filter questions with weight > 10 (incorrectly answered previously)
                 const hardCandidates = candidates.filter(c => c.weight > 10);
-                // Pick weighted random
                 const chosen = hardCandidates[Math.floor(Math.random() * hardCandidates.length)];
                 currentNumA = chosen.a;
                 currentNumB = chosen.b;
                 isSpacedRepetitionQuestion = true;
             } else {
-                // Pick random question from selected tables
                 currentNumA = selectedTables[Math.floor(Math.random() * selectedTables.length)];
                 currentNumB = Math.floor(Math.random() * 10) + 1;
                 isSpacedRepetitionQuestion = false;
@@ -521,22 +622,13 @@
                 spacedBadge.classList.add('hidden');
             }
 
-            setFeedbackMsg(`Điền kết quả cho phép tính <strong class="text-indigo-600">${currentNumA} × ${currentNumB}</strong> nhe!`, 'neutral');
+            setFeedbackMsg(`Điền kết quả hoặc 🎙️ Bấm nút nói đáp án cho phép tính <strong class="text-indigo-600">${currentNumA} × ${currentNumB}</strong>!`, 'neutral');
+            
+            setTimeout(() => {
+                readQuestionSpeech();
+            }, 300);
         }
 
-        function setFeedbackMsg(msg, type) {
-            const box = document.getElementById('feedback-msg');
-            box.innerHTML = msg;
-            if (type === 'correct') {
-                box.className = "w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-emerald-700 min-h-[50px] flex items-center justify-center pop-in";
-            } else if (type === 'wrong') {
-                box.className = "w-full bg-rose-50 border border-rose-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-rose-700 min-h-[50px] flex items-center justify-center shake-err";
-            } else {
-                box.className = "w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-slate-600 min-h-[50px] flex items-center justify-center";
-            }
-        }
-
-        // On-screen Keyboard Logic
         function pressNumpad(num) {
             playSound('click');
             if (currentAnswerInput.length < 3) {
@@ -561,26 +653,26 @@
             totalAnswered++;
 
             if (userAns === correctAns) {
-                // CORRECT
                 totalCorrect++;
                 score += 10;
                 streak++;
                 if (streak > maxStreak) maxStreak = streak;
 
-                // Play Audition-style combo tone according to streak count
                 playSound('correct', streak);
 
-                // Decrease memory weight (mastered question)
                 questionWeights[key] = Math.max(5, (questionWeights[key] || 10) - 3);
 
-                // Audition "PERFECT" Milestones (Streak 5, 10, 15...)
                 if (streak % 5 === 0) {
                     setTimeout(() => playSound('fanfare'), 120);
                     confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
                     showStreakToast(`🌟 PERFECT! Chuỗi ${streak} câu!`);
+                    speakFeedbackText(`Chính xác! Xuất sắc lắm bé! ${currentNumA} nhân ${currentNumB} bằng ${correctAns}`);
                 } else if (streak >= 3) {
                     confetti({ particleCount: 35, spread: 40, origin: { y: 0.6 } });
                     showStreakToast(`🔥 Combo x${streak}!`);
+                    speakFeedbackText(`Chính xác! Bằng ${correctAns}`);
+                } else {
+                    speakFeedbackText(`Chính xác! Bằng ${correctAns}`);
                 }
 
                 setFeedbackMsg(`🎉 <strong class="text-emerald-600">CHÍNH XÁC!</strong> ${currentNumA} × ${currentNumB} = ${correctAns}`, 'correct');
@@ -592,11 +684,9 @@
                 }, 1200);
 
             } else {
-                // INCORRECT: Hide correct answer, encourage re-thinking
                 playSound('wrong');
                 streak = 0;
 
-                // Increase memory weight for Spaced Repetition (frequently forgotten)
                 questionWeights[key] = (questionWeights[key] || 10) + 8;
 
                 saveLocalStorageData();
@@ -604,6 +694,7 @@
 
                 document.getElementById('ans-box').className = "w-20 h-16 sm:w-24 sm:h-20 bg-rose-50 border-2 border-rose-400 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black text-rose-600 shadow-inner shake-err";
                 setFeedbackMsg(`Chưa chính xác rùi! Bé suy nghĩ và nhẩm lại bảng cửu chương <strong>${currentNumA}</strong> xem sao nhe! 💪`, 'wrong');
+                speakFeedbackText(`Chưa đúng rồi, bé thử lại nhé!`);
 
                 setTimeout(() => {
                     clearInput();
@@ -630,7 +721,10 @@
             document.getElementById('streak-num').textContent = streak;
         }
 
-        // Mode Switching
+        function setFeedbackMsg(msg, type) {
+            document.getElementById('feedback-msg').innerHTML = msg;
+        }
+
         function setMode(mode) {
             playSound('click');
             currentMode = mode;
@@ -672,11 +766,11 @@
                     isChallengeActive = false;
                     confetti({ particleCount: 70, spread: 70, origin: { y: 0.5 } });
                     setFeedbackMsg(`⏱️ <strong>HẾT GIỜ!</strong> Bé ghi được <strong>${score} điểm</strong> trong thử thách 60s!`, 'correct');
+                    speakFeedbackText(`Hết giờ rồi! Bé ghi được ${score} điểm. Rất giỏi!`);
                 }
             }, 1000);
         }
 
-        // LocalStorage & Spaced Repetition Stats
         function saveLocalStorageData() {
             localStorage.setItem('multiplication_weights', JSON.stringify(questionWeights));
             localStorage.setItem('multiplication_stats', JSON.stringify({ score, maxStreak, totalAnswered, totalCorrect }));
@@ -705,7 +799,6 @@
             document.getElementById('stat-accuracy').textContent = `${accuracy}%`;
             document.getElementById('stat-max-streak').textContent = maxStreak;
 
-            // Render top forgotten questions
             const listContainer = document.getElementById('parent-mistakes-list');
             let sorted = [];
             for (let key in questionWeights) {
@@ -753,7 +846,6 @@
             openParentModal();
         }
 
-        // Table Reference Modal
         function openTableModal() {
             playSound('click');
             document.getElementById('table-modal').classList.remove('hidden');
@@ -781,7 +873,6 @@
             container.innerHTML = html;
         }
 
-        // Keyboard Event Listener (Physical Numpad Support)
         document.addEventListener('keydown', (e) => {
             if (e.key >= '0' && e.key <= '9') {
                 pressNumpad(e.key);
