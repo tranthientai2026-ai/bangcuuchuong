@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bé Giỏi Bảng Cửu Chương</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .shake-err {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-700 flex flex-col justify-between p-2 sm:p-4">
+
+    <!-- HEADER -->
+    <header class="max-w-4xl w-full mx-auto bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center justify-between gap-2">
+        <div class="flex items-center space-x-2.5">
+            <div class="w-10 h-10 bg-amber-400 rounded-xl flex items-center justify-center text-white text-xl font-black shadow-sm">
+                ⭐
+            </div>
+            <div>
+                <h1 class="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">Bé Giỏi Bảng Cửu Chương</h1>
+                <p class="text-[11px] text-slate-400 font-semibold">Ôn tập thông minh • Ôn lại câu hay quên</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="openTableModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-book-open"></i> <span class="hidden sm:inline">Xem bảng</span>
+            </button>
+            <button onclick="openParentModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-chart-pie text-indigo-500"></i> <span class="hidden sm:inline">Phụ huynh</span>
+            </button>
+            <button onclick="toggleSound()" id="sound-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-1.5 w-8 h-8 rounded-xl text-xs transition flex items-center justify-center">
+                <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="max-w-4xl w-full mx-auto my-3 flex-1 flex flex-col gap-3">
+
+        <!-- SETUP BAR: CHỌN BẢNG CỬU CHƯƠNG (2-9) -->
+        <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-check text-indigo-500"></i> Chọn bảng cửu chương muốn ôn:
+                </span>
+                <button onclick="selectAllTables()" class="text-[11px] font-bold text-indigo-600 hover:underline">
+                    Chọn tất cả (2-9)
+                </button>
+            </div>
+
+            <div class="grid grid-cols-8 gap-1.5" id="tables-selector-grid">
+                <!-- Dynamic Render Buttons 2-9 -->
+            </div>
+        </div>
+
+        <!-- MODE SELECTOR & STATS BAR -->
+        <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <!-- Mode Buttons -->
+            <div class="flex gap-1.5 w-full sm:w-auto">
+                <button id="mode-practice-btn" onclick="setMode('practice')" class="flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow-sm">
+                    <i class="fa-solid fa-graduation-cap"></i> Luyện tập tự do
+                </button>
+                <button id="mode-challenge-btn" onclick="setMode('challenge')" class="flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-indigo-50">
+                    <i class="fa-solid fa-stopwatch text-amber-500"></i> Thử thách 60s
+                </button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <div class="flex items-center gap-2 text-xs font-bold">
+                    <span id="timer-badge" class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg border border-amber-200 flex items-center gap-1 hidden">
+                        <i class="fa-solid fa-clock text-amber-500"></i> <strong id="timer-val" class="text-amber-800">60s</strong>
+                    </span>
+                    <span class="bg-orange-50 text-orange-700 px-2.5 py-1 rounded-lg border border-orange-200 flex items-center gap-1">
+                        <i class="fa-solid fa-fire text-orange-500"></i> Chuỗi: <strong id="streak-num" class="text-orange-800">0</strong>
+                    </span>
+                    <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
+                        <i class="fa-solid fa-star text-emerald-500"></i> Điểm: <strong id="score-num" class="text-emerald-800">0</strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN GAME WORKSPACE (2 COLUMNS) -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
+
+            <!-- LEFT: QUESTION CARD & DISPLAY -->
+            <div class="md:col-span-7 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center justify-between min-h-[360px] relative">
+
+                <!-- Priority Badge for Spaced Repetition -->
+                <div class="w-full flex justify-between items-center">
+                    <span id="spaced-badge" class="text-[10px] font-extrabold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200 flex items-center gap-1 hidden">
+                        <i class="fa-solid fa-rotate text-amber-500"></i> Câu bé hay quên - Ôn lại
+                    </span>
+                    <span id="streak-toast" class="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md hidden">
+                        🔥 Combo x2
+                    </span>
+                </div>
+
+                <!-- MAIN QUESTION BOX -->
+                <div class="my-4 text-center">
+                    <div class="text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">Phép tính</div>
+                    <div class="text-5xl sm:text-6xl font-black text-slate-800 flex items-center justify-center gap-3">
+                        <span id="num-a" class="text-indigo-600">?</span>
+                        <span class="text-pink-500 font-bold">×</span>
+                        <span id="num-b" class="text-emerald-600">?</span>
+                        <span class="text-slate-400 font-bold">=</span>
+                        <div id="ans-box" class="w-20 h-16 sm:w-24 sm:h-20 bg-slate-50 border-2 border-indigo-400 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black text-slate-800 shadow-inner">
+                            <span id="ans-text" class="text-indigo-600">?</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FEEDBACK & HINT MESSAGE BOX -->
+                <div id="feedback-msg" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-slate-600 min-h-[50px] flex items-center justify-center">
+                    Chọn các bảng cửu chương ở trên rùi bắt đầu nhe bé!
+                </div>
+
+                <!-- NEXT / SKIP BUTTON -->
+                <div class="w-full flex justify-end mt-2">
+                    <button onclick="skipQuestion()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
+                        Bỏ qua câu này <i class="fa-solid fa-forward"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- RIGHT: NUMPAD (ON-SCREEN KEYBOARD) -->
+            <div class="md:col-span-5 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col justify-center">
+                <div class="text-xs font-bold text-slate-400 mb-2 text-center uppercase tracking-wider">Bàn phím nhập đáp án</div>
+                
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <button onclick="pressNumpad('1')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">1</button>
+                    <button onclick="pressNumpad('2')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">2</button>
+                    <button onclick="pressNumpad('3')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">3</button>
+                    <button onclick="pressNumpad('4')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">4</button>
+                    <button onclick="pressNumpad('5')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">5</button>
+                    <button onclick="pressNumpad('6')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">6</button>
+                    <button onclick="pressNumpad('7')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">7</button>
+                    <button onclick="pressNumpad('8')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">8</button>
+                    <button onclick="pressNumpad('9')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">9</button>
+                    <button onclick="clearInput()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm py-3 rounded-xl transition flex items-center justify-center">
+                        <i class="fa-solid fa-eraser text-lg"></i>
+                    </button>
+                    <button onclick="pressNumpad('0')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">0</button>
+                    <button onclick="submitAnswer()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl shadow-sm transition flex items-center justify-center">
+                        <i class="fa-solid fa-check text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="text-center text-[11px] text-slate-400 py-1">
+        Bé Giỏi Bảng Cửu Chương • Học thông minh với Spaced Repetition
+    </footer>
+
+    <!-- MODAL 1: GÓC PHỤ HUYNH & THỐNG KÊ SPACED REPETITION -->
+    <div id="parent-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
+        <div class="bg-white w-full max-w-md rounded-2xl p-4 shadow-xl flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
+                <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie text-indigo-500"></i> Góc Phụ Huynh & Thống Kê
+                </h3>
+                <button onclick="closeParentModal()" class="text-slate-400 hover:text-slate-600 text-base font-bold">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-3 pr-1 my-2 text-xs">
+                <!-- Overview Stats -->
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-indigo-50 border border-indigo-100 p-2 rounded-xl">
+                        <span class="text-slate-400 block text-[10px]">Đã làm</span>
+                        <strong id="stat-total-answers" class="text-indigo-600 text-base">0</strong>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-2 rounded-xl">
+                        <span class="text-slate-400 block text-[10px]">Tỷ lệ đúng</span>
+                        <strong id="stat-accuracy" class="text-emerald-600 text-base">0%</strong>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 p-2 rounded-xl">
+                        <span class="text-slate-400 block text-[10px]">Chuỗi kỷ lục</span>
+                        <strong id="stat-max-streak" class="text-amber-600 text-base">0</strong>
+                    </div>
+                </div>
+
+                <!-- Hardest Questions (Spaced Repetition priority) -->
+                <div>
+                    <div class="font-extrabold text-slate-700 mb-1.5 flex items-center gap-1">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Các phép tính bé hay làm sai nhất:
+                    </div>
+                    <div id="parent-mistakes-list" class="space-y-1.5">
+                        <!-- Dynamic render -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex justify-between gap-2">
+                <button onclick="resetAllData()" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold px-3 py-1.5 rounded-xl text-xs transition">
+                    Đặt lại dữ liệu
+                </button>
+                <button onclick="closeParentModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-xl text-xs transition">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: BẢNG TRA CỨU CỬU CHƯƠNG -->
+    <div id="table-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
+        <div class="bg-white w-full max-w-2xl rounded-2xl p-4 shadow-xl flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
+                <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-book-open text-indigo-500"></i> Bảng Cửu Chương Từ 2 Đến 9
+                </h3>
+                <button onclick="closeTableModal()" class="text-slate-400 hover:text-slate-600 text-base font-bold">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 gap-3 p-1" id="multiplication-tables-container">
+                <!-- Dynamic Render Tables -->
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 text-right">
+                <button onclick="closeTableModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-xl text-xs transition">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Game State & Spaced Repetition Engine
+        let selectedTables = [2, 3, 4, 5, 6, 7, 8, 9];
+        let currentMode = 'practice'; // 'practice' | 'challenge'
+
+        let currentNumA = 2;
+        let currentNumB = 2;
+        let currentAnswerInput = '';
+        let isSpacedRepetitionQuestion = false;
+
+        let score = 0;
+        let streak = 0;
+        let maxStreak = 0;
+        let totalAnswered = 0;
+        let totalCorrect = 0;
+
+        let challengeTimer = null;
+        let timeLeft = 60;
+        let isChallengeActive = false;
+        let soundEnabled = true;
+
+        // Memory weights for Spaced Repetition (key: "AxB", value: weight score)
+        // Higher weight = Needs more practice
+        let questionWeights = {};
+
+        // Web Audio API
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        // Audition-style Pitch Scale (Diatonic C Major Scale frequencies from C5 to C6)
+        const AUDITION_PITCH_SCALE = [
+            523.25, // C5 (Streak 1)
+            587.33, // D5 (Streak 2)
+            659.25, // E5 (Streak 3)
+            698.46, // F5 (Streak 4)
+            783.99, // G5 (Streak 5)
+            880.00, // A5 (Streak 6)
+            987.77, // B5 (Streak 7)
+            1046.50,// C6 (Streak 8)
+            1174.66,// D6 (Streak 9)
+            1318.51 // E6 (Streak 10+)
+        ];
+
+        function playSound(type, extraData = 0) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioContext();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    // Soft crisp click
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+                    osc.start(now);
+                    osc.stop(now + 0.03);
+
+                } else if (type === 'correct') {
+                    // Audition Combo Pitch Up Sound
+                    const currentStreak = extraData;
+                    const scaleIndex = Math.min(Math.max(0, currentStreak - 1), AUDITION_PITCH_SCALE.length - 1);
+                    const baseFreq = AUDITION_PITCH_SCALE[scaleIndex];
+
+                    // Main Pluck Synth
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(baseFreq, now);
+                    
+                    // Add pitch bend upward for dynamic Audition feel
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.15, now + 0.12);
+
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+
+                    // Sparkle Sub-harmonic for higher combos
+                    if (currentStreak > 3) {
+                        const sparkle = audioCtx.createOscillator();
+                        const sparkleGain = audioCtx.createGain();
+                        sparkle.type = 'sine';
+                        sparkle.frequency.setValueAtTime(baseFreq * 2, now + 0.05);
+                        sparkleGain.gain.setValueAtTime(0.04, now + 0.05);
+                        sparkleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                        sparkle.connect(sparkleGain);
+                        sparkleGain.connect(audioCtx.destination);
+                        sparkle.start(now + 0.05);
+                        sparkle.stop(now + 0.2);
+                    }
+
+                } else if (type === 'fanfare') {
+                    // Audition "PERFECT!" Arpeggio Chord Sound (C Major 7th chord burst)
+                    const chordFreqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                    chordFreqs.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        const startTime = now + (idx * 0.04); // Quick arpeggio sequence
+
+                        noteOsc.type = 'sine';
+                        noteOsc.frequency.setValueAtTime(freq, startTime);
+                        noteGain.gain.setValueAtTime(0.1, startTime);
+                        noteGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+                        noteOsc.start(startTime);
+                        noteOsc.stop(startTime + 0.35);
+                    });
+
+                } else if (type === 'wrong') {
+                    // Gentle "Oops" Sub-wobble bass (encouraging, not harsh)
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(130, now + 0.25);
+
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').className = soundEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark";
+        }
+
+        window.onload = function() {
+            initWeights();
+            loadLocalStorageData();
+            renderTableSelector();
+            renderTableModalContent();
+            generateQuestion();
+        };
+
+        // Initialize question memory weights (Default = 10)
+        function initWeights() {
+            for (let a = 2; a <= 9; a++) {
+                for (let b = 1; b <= 10; b++) {
+                    const key = `${a}x${b}`;
+                    if (!questionWeights[key]) {
+                        questionWeights[key] = 10;
+                    }
+                }
+            }
+        }
+
+        function renderTableSelector() {
+            const container = document.getElementById('tables-selector-grid');
+            let html = '';
+            for (let t = 2; t <= 9; t++) {
+                const isSelected = selectedTables.includes(t);
+                const activeClass = isSelected 
+                    ? "bg-indigo-600 text-white shadow-sm font-black" 
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold";
+                html += `
+                    <button onclick="toggleTable(${t})" class="py-1.5 rounded-xl text-xs transition ${activeClass}">
+                        Bảng ${t}
+                    </button>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function toggleTable(t) {
+            playSound('click');
+            if (selectedTables.includes(t)) {
+                if (selectedTables.length > 1) {
+                    selectedTables = selectedTables.filter(x => x !== t);
+                }
+            } else {
+                selectedTables.push(t);
+                selectedTables.sort((a, b) => a - b);
+            }
+            renderTableSelector();
+            generateQuestion();
+        }
+
+        function selectAllTables() {
+            playSound('click');
+            selectedTables = [2, 3, 4, 5, 6, 7, 8, 9];
+            renderTableSelector();
+            generateQuestion();
+        }
+
+        // Spaced Repetition Question Generator
+        function generateQuestion() {
+            if (selectedTables.length === 0) selectedTables = [2];
+
+            // 70% probability to pick a high-weight (frequently forgotten) question
+            const useSpacedRepetition = Math.random() < 0.7;
+            let candidates = [];
+
+            selectedTables.forEach(a => {
+                for (let b = 1; b <= 10; b++) {
+                    const key = `${a}x${b}`;
+                    const weight = questionWeights[key] || 10;
+                    candidates.push({ a, b, key, weight });
+                }
+            });
+
+            if (useSpacedRepetition && candidates.some(c => c.weight > 10)) {
+                // Filter questions with weight > 10 (incorrectly answered previously)
+                const hardCandidates = candidates.filter(c => c.weight > 10);
+                // Pick weighted random
+                const chosen = hardCandidates[Math.floor(Math.random() * hardCandidates.length)];
+                currentNumA = chosen.a;
+                currentNumB = chosen.b;
+                isSpacedRepetitionQuestion = true;
+            } else {
+                // Pick random question from selected tables
+                currentNumA = selectedTables[Math.floor(Math.random() * selectedTables.length)];
+                currentNumB = Math.floor(Math.random() * 10) + 1;
+                isSpacedRepetitionQuestion = false;
+            }
+
+            currentAnswerInput = '';
+            document.getElementById('num-a').textContent = currentNumA;
+            document.getElementById('num-b').textContent = currentNumB;
+            document.getElementById('ans-text').textContent = '?';
+            document.getElementById('ans-box').className = "w-20 h-16 sm:w-24 sm:h-20 bg-slate-50 border-2 border-indigo-400 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black text-slate-800 shadow-inner";
+
+            const spacedBadge = document.getElementById('spaced-badge');
+            if (isSpacedRepetitionQuestion) {
+                spacedBadge.classList.remove('hidden');
+            } else {
+                spacedBadge.classList.add('hidden');
+            }
+
+            setFeedbackMsg(`Điền kết quả cho phép tính <strong class="text-indigo-600">${currentNumA} × ${currentNumB}</strong> nhe!`, 'neutral');
+        }
+
+        function setFeedbackMsg(msg, type) {
+            const box = document.getElementById('feedback-msg');
+            box.innerHTML = msg;
+            if (type === 'correct') {
+                box.className = "w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-emerald-700 min-h-[50px] flex items-center justify-center pop-in";
+            } else if (type === 'wrong') {
+                box.className = "w-full bg-rose-50 border border-rose-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-rose-700 min-h-[50px] flex items-center justify-center shake-err";
+            } else {
+                box.className = "w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-slate-600 min-h-[50px] flex items-center justify-center";
+            }
+        }
+
+        // On-screen Keyboard Logic
+        function pressNumpad(num) {
+            playSound('click');
+            if (currentAnswerInput.length < 3) {
+                currentAnswerInput += num;
+                document.getElementById('ans-text').textContent = currentAnswerInput;
+            }
+        }
+
+        function clearInput() {
+            playSound('click');
+            currentAnswerInput = '';
+            document.getElementById('ans-text').textContent = '?';
+        }
+
+        function submitAnswer() {
+            if (!currentAnswerInput) return;
+
+            const userAns = parseInt(currentAnswerInput);
+            const correctAns = currentNumA * currentNumB;
+            const key = `${currentNumA}x${currentNumB}`;
+
+            totalAnswered++;
+
+            if (userAns === correctAns) {
+                // CORRECT
+                totalCorrect++;
+                score += 10;
+                streak++;
+                if (streak > maxStreak) maxStreak = streak;
+
+                // Play Audition-style combo tone according to streak count
+                playSound('correct', streak);
+
+                // Decrease memory weight (mastered question)
+                questionWeights[key] = Math.max(5, (questionWeights[key] || 10) - 3);
+
+                // Audition "PERFECT" Milestones (Streak 5, 10, 15...)
+                if (streak % 5 === 0) {
+                    setTimeout(() => playSound('fanfare'), 120);
+                    confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+                    showStreakToast(`🌟 PERFECT! Chuỗi ${streak} câu!`);
+                } else if (streak >= 3) {
+                    confetti({ particleCount: 35, spread: 40, origin: { y: 0.6 } });
+                    showStreakToast(`🔥 Combo x${streak}!`);
+                }
+
+                setFeedbackMsg(`🎉 <strong class="text-emerald-600">CHÍNH XÁC!</strong> ${currentNumA} × ${currentNumB} = ${correctAns}`, 'correct');
+                saveLocalStorageData();
+                updateScoreDisplay();
+
+                setTimeout(() => {
+                    generateQuestion();
+                }, 1200);
+
+            } else {
+                // INCORRECT: Hide correct answer, encourage re-thinking
+                playSound('wrong');
+                streak = 0;
+
+                // Increase memory weight for Spaced Repetition (frequently forgotten)
+                questionWeights[key] = (questionWeights[key] || 10) + 8;
+
+                saveLocalStorageData();
+                updateScoreDisplay();
+
+                document.getElementById('ans-box').className = "w-20 h-16 sm:w-24 sm:h-20 bg-rose-50 border-2 border-rose-400 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black text-rose-600 shadow-inner shake-err";
+                setFeedbackMsg(`Chưa chính xác rùi! Bé suy nghĩ và nhẩm lại bảng cửu chương <strong>${currentNumA}</strong> xem sao nhe! 💪`, 'wrong');
+
+                setTimeout(() => {
+                    clearInput();
+                }, 1000);
+            }
+        }
+
+        function skipQuestion() {
+            playSound('click');
+            streak = 0;
+            updateScoreDisplay();
+            generateQuestion();
+        }
+
+        function showStreakToast(msg) {
+            const toast = document.getElementById('streak-toast');
+            toast.textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('score-num').textContent = score;
+            document.getElementById('streak-num').textContent = streak;
+        }
+
+        // Mode Switching
+        function setMode(mode) {
+            playSound('click');
+            currentMode = mode;
+            const practiceBtn = document.getElementById('mode-practice-btn');
+            const challengeBtn = document.getElementById('mode-challenge-btn');
+            const timerBadge = document.getElementById('timer-badge');
+
+            if (mode === 'practice') {
+                clearInterval(challengeTimer);
+                isChallengeActive = false;
+                practiceBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow-sm";
+                challengeBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-indigo-50";
+                timerBadge.classList.add('hidden');
+                generateQuestion();
+            } else {
+                challengeBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-white shadow-sm";
+                practiceBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-indigo-50";
+                timerBadge.classList.remove('hidden');
+                startChallenge();
+            }
+        }
+
+        function startChallenge() {
+            score = 0;
+            streak = 0;
+            timeLeft = 60;
+            isChallengeActive = true;
+            updateScoreDisplay();
+            document.getElementById('timer-val').textContent = `${timeLeft}s`;
+
+            generateQuestion();
+
+            clearInterval(challengeTimer);
+            challengeTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-val').textContent = `${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(challengeTimer);
+                    isChallengeActive = false;
+                    confetti({ particleCount: 70, spread: 70, origin: { y: 0.5 } });
+                    setFeedbackMsg(`⏱️ <strong>HẾT GIỜ!</strong> Bé ghi được <strong>${score} điểm</strong> trong thử thách 60s!`, 'correct');
+                }
+            }, 1000);
+        }
+
+        // LocalStorage & Spaced Repetition Stats
+        function saveLocalStorageData() {
+            localStorage.setItem('multiplication_weights', JSON.stringify(questionWeights));
+            localStorage.setItem('multiplication_stats', JSON.stringify({ score, maxStreak, totalAnswered, totalCorrect }));
+        }
+
+        function loadLocalStorageData() {
+            const savedWeights = localStorage.getItem('multiplication_weights');
+            if (savedWeights) {
+                try { questionWeights = JSON.parse(savedWeights); } catch(e) {}
+            }
+            const savedStats = localStorage.getItem('multiplication_stats');
+            if (savedStats) {
+                try {
+                    const st = JSON.parse(savedStats);
+                    maxStreak = st.maxStreak || 0;
+                    totalAnswered = st.totalAnswered || 0;
+                    totalCorrect = st.totalCorrect || 0;
+                } catch(e) {}
+            }
+        }
+
+        function openParentModal() {
+            playSound('click');
+            document.getElementById('stat-total-answers').textContent = totalAnswered;
+            const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+            document.getElementById('stat-accuracy').textContent = `${accuracy}%`;
+            document.getElementById('stat-max-streak').textContent = maxStreak;
+
+            // Render top forgotten questions
+            const listContainer = document.getElementById('parent-mistakes-list');
+            let sorted = [];
+            for (let key in questionWeights) {
+                if (questionWeights[key] > 10) {
+                    const parts = key.split('x');
+                    sorted.push({ a: parts[0], b: parts[1], weight: questionWeights[key] });
+                }
+            }
+            sorted.sort((a, b) => b.weight - a.weight);
+
+            if (sorted.length === 0) {
+                listContainer.innerHTML = `<div class="text-slate-400 italic text-center py-2">Bé đang làm rất tốt, chưa có câu nào bị hổng kiến thức! 🎉</div>`;
+            } else {
+                let html = '';
+                sorted.slice(0, 6).forEach(item => {
+                    html += `
+                        <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl flex items-center justify-between">
+                            <span class="font-extrabold text-amber-900">${item.a} × ${item.b} = ${item.a * item.b}</span>
+                            <span class="text-[10px] bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-md">Cần luyện thêm</span>
+                        </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+            }
+
+            document.getElementById('parent-modal').classList.remove('hidden');
+        }
+
+        function closeParentModal() {
+            playSound('click');
+            document.getElementById('parent-modal').classList.add('hidden');
+        }
+
+        function resetAllData() {
+            playSound('click');
+            questionWeights = {};
+            initWeights();
+            score = 0;
+            streak = 0;
+            maxStreak = 0;
+            totalAnswered = 0;
+            totalCorrect = 0;
+            saveLocalStorageData();
+            updateScoreDisplay();
+            openParentModal();
+        }
+
+        // Table Reference Modal
+        function openTableModal() {
+            playSound('click');
+            document.getElementById('table-modal').classList.remove('hidden');
+        }
+
+        function closeTableModal() {
+            playSound('click');
+            document.getElementById('table-modal').classList.add('hidden');
+        }
+
+        function renderTableModalContent() {
+            const container = document.getElementById('multiplication-tables-container');
+            let html = '';
+            for (let a = 2; a <= 9; a++) {
+                html += `
+                    <div class="bg-indigo-50/50 border border-indigo-100 p-2 rounded-xl text-xs">
+                        <div class="font-black text-indigo-700 text-center border-b border-indigo-100 pb-1 mb-1">Bảng ${a}</div>
+                        <div class="space-y-0.5 text-slate-600 font-semibold text-[11px]">
+                `;
+                for (let b = 1; b <= 10; b++) {
+                    html += `<div>${a} × ${b} = <strong class="text-slate-800">${a * b}</strong></div>`;
+                }
+                html += `</div></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        // Keyboard Event Listener (Physical Numpad Support)
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                pressNumpad(e.key);
+            } else if (e.key === 'Enter') {
+                submitAnswer();
+            } else if (e.key === 'Backspace') {
+                clearInput();
+            }
+        });
+    </script>
+</body>
+</html>
