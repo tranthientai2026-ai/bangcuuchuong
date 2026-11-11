@@ -142,7 +142,7 @@
                     🔥 Chuỗi: <strong id="streak-num">0</strong>
                 </span>
                 <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
-                    ⭐ Điểm: <strong id="score-num">0</strong>
+                    ⭐ Sao: <strong id="score-num">0</strong>
                 </span>
             </div>
         </div>
@@ -268,7 +268,14 @@
                 </div>
 
                 <div>
-                    <div class="font-extrabold text-slate-700 mb-1.5 flex items-center gap-1">
+                    <div class="bg-amber-50 border border-amber-100 rounded-xl p-2">
+                    <div class="flex items-center justify-between font-extrabold text-slate-700 mb-1.5">
+                        <span>⭐ Thống kê sao</span>
+                        <span class="text-amber-600">Tổng: <strong id="stat-stars-total">0</strong> · Hôm nay: <strong id="stat-stars-today">0</strong></span>
+                    </div>
+                    <div id="stars-week-chart" class="flex items-end justify-between gap-1 h-16"></div>
+                </div>
+                <div class="font-extrabold text-slate-700 mb-1.5 flex items-center gap-1">
                         <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Câu bé hay sai (ôn lại sau 1-2-4-7-14 ngày):
                     </div>
                     <div id="parent-mistakes-list" class="space-y-1.5"></div>
@@ -417,6 +424,8 @@
         let questionWeights = {};
 
         let score = 0;
+        let starsTotal = 0;      // tổng sao tích lũy (mỗi câu đúng +10)
+        let starsByDay = {};     // "YYYY-MM-DD" -> số sao trong ngày
         let streak = 0;
         let maxStreak = 0;
         let totalAnswered = 0;
@@ -556,6 +565,7 @@
 
         window.onload = function() {
             loadLocalStorageData();
+            updateScoreDisplay();
             initDragonflyCanvas();
             renderTableSelector();
             renderTableModalContent();
@@ -982,6 +992,8 @@
             if (userAns === correctAns) {
                 totalCorrect++;
                 score += 10;
+                starsTotal += 10;
+                starsByDay[todayStr()] = (starsByDay[todayStr()] || 0) + 10;
                 streak++;
                 if (streak > maxStreak) maxStreak = streak;
 
@@ -996,7 +1008,7 @@
                     confetti({ particleCount: 35, spread: 40, origin: { y: 0.6 } });
                 }
 
-                setFeedbackMsg(`🎉 <strong class="text-emerald-600">CHÍNH XÁC!</strong> ${currentNumA} × ${currentNumB} = ${correctAns}${note}`, 'correct');
+                setFeedbackMsg(`🎉 <strong class="text-emerald-600">CHÍNH XÁC!</strong> ${currentNumA} × ${currentNumB} = ${correctAns} <strong class="text-amber-500">+10 ⭐</strong>${note}`, 'correct');
                 saveLocalStorageData();
                 updateScoreDisplay();
                 updateDueBadge();
@@ -1024,7 +1036,7 @@
         }
 
         function updateScoreDisplay() {
-            document.getElementById('score-num').textContent = score;
+            document.getElementById('score-num').textContent = starsTotal;
             document.getElementById('streak-num').textContent = streak;
             const csText = document.getElementById('canvas-streak-text');
             if (csText) csText.textContent = streak;
@@ -1078,7 +1090,7 @@
 
         function saveLocalStorageData() {
             localStorage.setItem('multiplication_wrongbook', JSON.stringify(wrongBook));
-            localStorage.setItem('multiplication_stats', JSON.stringify({ score, maxStreak, totalAnswered, totalCorrect }));
+            localStorage.setItem('multiplication_stats', JSON.stringify({ score, maxStreak, totalAnswered, totalCorrect, starsTotal, starsByDay }));
         }
 
         function loadLocalStorageData() {
@@ -1105,8 +1117,29 @@
                     maxStreak = st.maxStreak || 0;
                     totalAnswered = st.totalAnswered || 0;
                     totalCorrect = st.totalCorrect || 0;
+                    starsByDay = st.starsByDay || {};
+                    starsTotal = (typeof st.starsTotal === "number") ? st.starsTotal : totalCorrect * 10;
                 } catch (e) {}
             }
+        }
+
+        function renderStarStats() {
+            document.getElementById('stat-stars-total').textContent = starsTotal;
+            document.getElementById('stat-stars-today').textContent = starsByDay[todayStr()] || 0;
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                days.push({ key: dateStr(d), label: `${d.getDate()}/${d.getMonth() + 1}` });
+            }
+            const max = Math.max(10, ...days.map(d => starsByDay[d.key] || 0));
+            document.getElementById('stars-week-chart').innerHTML = days.map(d => {
+                const v = starsByDay[d.key] || 0;
+                const h = Math.max(2, Math.round(v / max * 36));
+                return `<div class="flex-1 flex flex-col items-center justify-end h-full">
+                    <span class="text-[9px] font-bold text-amber-700">${v || ''}</span>
+                    <div class="w-full max-w-[22px] bg-amber-400 rounded-t" style="height:${h}px"></div>
+                    <span class="text-[9px] text-slate-400">${d.label}</span></div>`;
+            }).join('');
         }
 
         function renderParentList() {
@@ -1152,6 +1185,7 @@
             const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
             document.getElementById('stat-accuracy').textContent = `${accuracy}%`;
             document.getElementById('stat-max-streak').textContent = maxStreak;
+            renderStarStats();
             renderParentList();
             document.getElementById('parent-modal').classList.remove('hidden');
         }
@@ -1166,7 +1200,7 @@
             playSound('click');
             wrongBook = {};
             retryQueue = [];
-            score = 0; streak = 0; maxStreak = 0; totalAnswered = 0; totalCorrect = 0;
+            score = 0; streak = 0; maxStreak = 0; totalAnswered = 0; totalCorrect = 0; starsTotal = 0; starsByDay = {};
             saveLocalStorageData();
             updateScoreDisplay();
             updateDueBadge();
