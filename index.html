@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bé Giỏi Bảng Cửu Chương v2.3</title>
+    <title>Bé Giỏi Bảng Cửu Chương v2.4</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -64,7 +64,7 @@
             </div>
             <div>
                 <h1 class="text-sm sm:text-base font-black text-slate-800 leading-none">Bé Giỏi Bảng Cửu Chương</h1>
-                <p class="text-[10px] text-slate-400 font-bold hidden sm:block">Phiên bản v2.3 • Ôn tập thông minh & Chuồn chuồn bắt mồi</p>
+                <p class="text-[10px] text-slate-400 font-bold hidden sm:block">Phiên bản v2.4 • Ôn câu sai ngắt quãng & Chuồn chuồn bắt mồi</p>
             </div>
         </div>
 
@@ -121,13 +121,16 @@
         </div>
 
         <!-- MODE SELECTOR & STATS BAR -->
-        <div class="bg-white rounded-xl p-1.5 shadow-xs border border-slate-200 flex items-center justify-between gap-2 shrink-0">
+        <div class="bg-white rounded-xl p-1.5 shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
             <div class="flex gap-1">
                 <button id="mode-practice-btn" onclick="setMode('practice')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-indigo-600 text-white shadow-xs">
                     <i class="fa-solid fa-graduation-cap"></i> Luyện tập
                 </button>
+                <button id="mode-review-btn" onclick="setMode('review')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50">
+                    <i class="fa-solid fa-rotate-right text-rose-500"></i> Ôn câu sai <span id="due-badge" class="bg-rose-500 text-white rounded-full px-1.5 text-[10px] hidden">0</span>
+                </button>
                 <button id="mode-challenge-btn" onclick="setMode('challenge')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50">
-                    <i class="fa-solid fa-stopwatch text-amber-500"></i> Thử thách 60s
+                    <i class="fa-solid fa-stopwatch text-amber-500"></i> 60s
                 </button>
             </div>
 
@@ -193,9 +196,12 @@
                     Chọn các bảng cửu chương ở trên rùi bắt đầu nhe bé!
                 </div>
 
-                <!-- SKIP BUTTON -->
-                <div class="w-full flex justify-end">
-                    <button onclick="skipQuestion()" class="text-[10px] font-extrabold text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
+                <!-- SKIP / MASTERED -->
+                <div class="w-full flex justify-between items-center">
+                    <button id="mastered-btn" onclick="markCurrentMastered()" class="hidden text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg hover:bg-emerald-100 transition">
+                        ✅ Bé đã thuộc câu này
+                    </button>
+                    <button onclick="skipQuestion()" class="ml-auto text-[10px] font-extrabold text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
                         Bỏ qua <i class="fa-solid fa-forward"></i>
                     </button>
                 </div>
@@ -230,7 +236,7 @@
 
     <!-- FOOTER -->
     <footer class="text-center text-[10px] text-slate-400 py-0.5 shrink-0">
-        Bé Giỏi Bảng Cửu Chương v2.3 • Học thông minh với Spaced Repetition
+        Bé Giỏi Bảng Cửu Chương v2.4 • Học thông minh với Spaced Repetition
     </footer>
 
     <!-- MODAL 1: GÓC PHỤ HUYNH -->
@@ -263,7 +269,7 @@
 
                 <div>
                     <div class="font-extrabold text-slate-700 mb-1.5 flex items-center gap-1">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Phép tính bé hay làm sai / quá giờ:
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Câu bé hay sai (ôn lại sau 1-2-4-7-14 ngày):
                     </div>
                     <div id="parent-mistakes-list" class="space-y-1.5"></div>
                 </div>
@@ -549,7 +555,6 @@
         }
 
         window.onload = function() {
-            initWeights();
             loadLocalStorageData();
             initDragonflyCanvas();
             renderTableSelector();
@@ -559,7 +564,9 @@
             requestAnimationFrame(dragonflyGameLoop);
         };
 
-        // --- DRAGONFLY CANVAS ENGINE ---
+        // --- DRAGONFLY CANVAS ENGINE (khung ngang) ---
+        let dfW = 300, dfH = 120;
+
         function initDragonflyCanvas() {
             dfCanvas = document.getElementById('dragonflyCanvas');
             if (!dfCanvas) return;
@@ -571,183 +578,159 @@
         function resizeDragonflyCanvas() {
             if (!dfCanvas) return;
             const rect = dfCanvas.parentElement.getBoundingClientRect();
-            dfCanvas.width = rect.width;
-            dfCanvas.height = rect.height;
-            dragonflyPos.x = dfCanvas.width * 0.22;
-            dragonflyPos.y = dfCanvas.height * 0.5;
-            dragonflyPos.targetX = dragonflyPos.x;
-            dragonflyPos.targetY = dragonflyPos.y;
-            preyPos.x = dfCanvas.width * 0.78;
-            preyPos.y = dfCanvas.height * 0.5;
+            const dpr = window.devicePixelRatio || 1;
+            dfW = rect.width; dfH = rect.height;
+            dfCanvas.width = Math.round(dfW * dpr);
+            dfCanvas.height = Math.round(dfH * dpr);
+            dfCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            dragonflyPos.x = dragonflyPos.targetX = dfW * 0.2;
+            dragonflyPos.y = dragonflyPos.targetY = dfH * 0.55;
+            preyPos.x = dfW * 0.8;
+            preyPos.y = dfH * 0.55;
         }
 
         function triggerDragonflyAttack(isSuccess) {
             dfAnimState = isSuccess ? 'ATTACK_SUCCESS' : 'ATTACK_MISS';
             dfAnimProgress = 0;
-            if (isSuccess) {
-                dfBannerText = 'BẮT ĐƯỢC MỒI! 🎉';
-                dfBannerColor = '#10b981';
-            } else {
-                dfBannerText = 'TRƯỢT MỒI RỒI! 😅';
-                dfBannerColor = '#f43f5e';
-            }
+            dfBannerText = isSuccess ? 'BẮT ĐƯỢC MỒI! 🎉' : 'TRƯỢT MỒI RỒI! 😅';
+            dfBannerColor = isSuccess ? '#10b981' : '#f43f5e';
         }
 
-        function dragonflyGameLoop(timestamp) {
-            if (!dfCtx || !dfCanvas) return;
-            dfCtx.clearRect(0, 0, dfCanvas.width, dfCanvas.height);
+        function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
 
-            // Cloud background
-            dfCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        function dragonflyGameLoop(ts) {
+            if (!dfCtx || !dfCanvas) return;
+            dfCtx.clearRect(0, 0, dfW, dfH);
+
+            dfCtx.fillStyle = 'rgba(255,255,255,0.7)';
             dfCtx.beginPath();
             dfCtx.arc(40, 25, 14, 0, Math.PI * 2);
             dfCtx.arc(58, 20, 18, 0, Math.PI * 2);
             dfCtx.arc(76, 25, 14, 0, Math.PI * 2);
             dfCtx.fill();
 
-            const timeSec = timestamp * 0.003;
-            let wingFlap = Math.sin(timestamp * 0.045);
+            const homeX = dfW * 0.2, homeY = dfH * 0.55, preyBaseX = dfW * 0.8;
+            const t = ts * 0.003;
+            const flap = Math.sin(ts * 0.05);
+            let facing = 1, carry = false;
 
             if (dfAnimState === 'IDLE') {
-                dragonflyPos.targetX = dfCanvas.width * 0.22 + Math.sin(timeSec) * 10;
-                dragonflyPos.targetY = dfCanvas.height * 0.5 + Math.cos(timeSec * 1.5) * 6;
-                preyPos.y = dfCanvas.height * 0.5 + Math.sin(timeSec * 2) * 8;
+                dragonflyPos.targetX = homeX + Math.sin(t) * 10;
+                dragonflyPos.targetY = homeY + Math.cos(t * 1.5) * 6;
+                preyPos.x = preyBaseX;
+                preyPos.y = homeY + Math.sin(t * 2) * 8;
                 preyPos.active = true;
-            } else if (dfAnimState === 'ATTACK_SUCCESS') {
-                dfAnimProgress += 0.035;
-                if (dfAnimProgress < 0.5) {
-                    const t = dfAnimProgress / 0.5;
-                    dragonflyPos.targetX = (dfCanvas.width * 0.22) + (preyPos.x - dfCanvas.width * 0.22) * t;
-                    dragonflyPos.targetY = (dfCanvas.height * 0.5) + (preyPos.y - dfCanvas.height * 0.5) * t;
-                } else if (dfAnimProgress < 1.0) {
-                    preyPos.active = false;
-                    const t = (dfAnimProgress - 0.5) / 0.5;
-                    dragonflyPos.targetX = preyPos.x - (preyPos.x - dfCanvas.width * 0.22) * t;
-                    dragonflyPos.targetY = preyPos.y - (preyPos.y - dfCanvas.height * 0.5) * t;
+            } else {
+                const ok = dfAnimState === 'ATTACK_SUCCESS';
+                dfAnimProgress += 0.02;
+                const p = dfAnimProgress;
+                const reachX = preyBaseX - 24;
+                const reachY = ok ? homeY : homeY - 26;
+                if (!ok && p < 1) { preyPos.x += 1.0; preyPos.y -= 0.8; }
+                if (p < 0.5) {
+                    const e = ease(p / 0.5);
+                    dragonflyPos.targetX = homeX + (reachX - homeX) * e;
+                    dragonflyPos.targetY = homeY + (reachY - homeY) * e;
+                    if (ok) { preyPos.x = preyBaseX; preyPos.y = homeY; }
+                } else if (p < 1) {
+                    facing = -1;
+                    const e = ease((p - 0.5) / 0.5);
+                    dragonflyPos.targetX = reachX + (homeX - reachX) * e;
+                    dragonflyPos.targetY = reachY + (homeY - reachY) * e;
+                    if (ok) { carry = true; preyPos.active = false; }
                 } else {
-                    dfAnimState = 'IDLE';
-                    dfAnimProgress = 0;
-                }
-            } else if (dfAnimState === 'ATTACK_MISS') {
-                dfAnimProgress += 0.035;
-                if (dfAnimProgress < 0.5) {
-                    const t = dfAnimProgress / 0.5;
-                    dragonflyPos.targetX = (dfCanvas.width * 0.22) + (preyPos.x - dfCanvas.width * 0.22) * t;
-                    dragonflyPos.targetY = (dfCanvas.height * 0.5) + (preyPos.y - 25 - dfCanvas.height * 0.5) * t;
-                    preyPos.y -= 1.5;
-                } else if (dfAnimProgress < 1.0) {
-                    const t = (dfAnimProgress - 0.5) / 0.5;
-                    dragonflyPos.targetX = preyPos.x - (preyPos.x - dfCanvas.width * 0.22) * t;
-                    dragonflyPos.targetY = (dfCanvas.height * 0.5 - 25) + 25 * t;
-                } else {
-                    dfAnimState = 'IDLE';
-                    dfAnimProgress = 0;
+                    dfAnimState = 'IDLE'; dfAnimProgress = 0; dfBannerText = '';
                 }
             }
 
+            const prevY = dragonflyPos.y;
             dragonflyPos.x += (dragonflyPos.targetX - dragonflyPos.x) * 0.15;
             dragonflyPos.y += (dragonflyPos.targetY - dragonflyPos.y) * 0.15;
+            const tilt = Math.max(-0.4, Math.min(0.4, (dragonflyPos.y - prevY) * 0.35));
 
-            if (preyPos.active) {
-                drawPrey(preyPos.x, preyPos.y, timeSec);
-            }
-
-            drawDragonfly(dragonflyPos.x, dragonflyPos.y, wingFlap);
+            if (preyPos.active) drawPrey(preyPos.x, preyPos.y, t);
+            drawDragonfly(dragonflyPos.x, dragonflyPos.y, flap, facing, tilt);
+            if (carry) drawPrey(dragonflyPos.x + facing * 16, dragonflyPos.y + 1, t);
 
             if (dfAnimState !== 'IDLE' && dfBannerText) {
                 dfCtx.save();
                 dfCtx.font = '900 13px Nunito, sans-serif';
                 dfCtx.fillStyle = dfBannerColor;
                 dfCtx.textAlign = 'center';
-                dfCtx.fillText(dfBannerText, dfCanvas.width / 2, 22);
+                dfCtx.fillText(dfBannerText, dfW / 2, 22);
                 dfCtx.restore();
             }
-
             requestAnimationFrame(dragonflyGameLoop);
         }
 
-        function drawPrey(x, y, timeSec) {
-            dfCtx.save();
-            dfCtx.translate(x, y);
-
-            const wing = Math.sin(timeSec * 25) * 5;
-            dfCtx.fillStyle = 'rgba(203, 213, 225, 0.8)';
-            dfCtx.beginPath();
-            dfCtx.ellipse(-2, -4, 3.5, 7 + wing, Math.PI / 4, 0, Math.PI * 2);
-            dfCtx.ellipse(2, -4, 3.5, 7 + wing, -Math.PI / 4, 0, Math.PI * 2);
-            dfCtx.fill();
-
-            dfCtx.fillStyle = '#334155';
-            dfCtx.beginPath();
-            dfCtx.ellipse(0, 0, 3.5, 6, 0, 0, Math.PI * 2);
-            dfCtx.fill();
-
-            dfCtx.fillStyle = '#ef4444';
-            dfCtx.beginPath();
-            dfCtx.arc(-1.5, -2.5, 1.2, 0, Math.PI * 2);
-            dfCtx.arc(1.5, -2.5, 1.2, 0, Math.PI * 2);
-            dfCtx.fill();
-
-            dfCtx.restore();
+        function drawPrey(x, y, t) {
+            const c = dfCtx;
+            c.save(); c.translate(x, y);
+            const w = Math.sin(t * 25) * 4;
+            c.fillStyle = 'rgba(203,213,225,0.85)';
+            c.beginPath();
+            c.ellipse(-2, -4, 3.5, 6 + w, Math.PI / 4, 0, Math.PI * 2);
+            c.ellipse(2, -4, 3.5, 6 + w, -Math.PI / 4, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = '#334155';
+            c.beginPath(); c.ellipse(0, 0, 3.5, 5.5, 0, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#ef4444';
+            c.beginPath(); c.arc(-1.5, -2.5, 1.1, 0, Math.PI * 2); c.arc(1.5, -2.5, 1.1, 0, Math.PI * 2); c.fill();
+            c.restore();
         }
 
-        function drawDragonfly(x, y, wingFlap) {
-            dfCtx.save();
-            dfCtx.translate(x, y);
+        // Chuồn chuồn nhìn nghiêng: đầu bên phải, đuôi bên trái, cánh vỗ phía trên
+        function drawDragonfly(x, y, flap, facing, tilt) {
+            const c = dfCtx;
+            c.save();
+            c.translate(x, y);
+            c.scale(facing, 1);
+            c.rotate(tilt);
 
-            // Double translucent wings
-            dfCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-            dfCtx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
-            dfCtx.lineWidth = 1;
+            const wing = (ax, ang, alpha, len) => {
+                c.save();
+                c.translate(ax, -3);
+                c.rotate(ang);
+                c.fillStyle = `rgba(255,255,255,${alpha})`;
+                c.strokeStyle = 'rgba(14,165,233,0.55)';
+                c.lineWidth = 1;
+                c.beginPath();
+                c.ellipse(-len / 2, 0, len / 2, 3.4, 0, 0, Math.PI * 2);
+                c.fill(); c.stroke();
+                c.restore();
+            };
+            // cánh phía xa (mờ)
+            wing(1, 0.25 + flap * 0.3, 0.35, 24);
+            wing(-3, 0.25 - flap * 0.3, 0.35, 22);
 
-            const wingAngle = wingFlap * 0.25;
+            // đuôi nhiều đốt
+            for (let i = 0; i < 7; i++) {
+                c.fillStyle = i % 2 ? '#059669' : '#10b981';
+                c.beginPath();
+                c.ellipse(-9 - i * 4.4, Math.sin(i * 0.5) * 0.6, 3.3, 2.7 - i * 0.18, 0, 0, Math.PI * 2);
+                c.fill();
+            }
+            // ngực
+            c.fillStyle = '#10b981';
+            c.beginPath(); c.ellipse(0, 0, 7.5, 5, 0, 0, Math.PI * 2); c.fill();
+            // chân
+            c.strokeStyle = '#065f46'; c.lineWidth = 1;
+            c.beginPath();
+            c.moveTo(1, 4); c.lineTo(4, 9); c.moveTo(-2, 4); c.lineTo(-3, 9); c.moveTo(4, 3.5); c.lineTo(8, 8);
+            c.stroke();
+            // đầu + mắt
+            c.fillStyle = '#065f46';
+            c.beginPath(); c.arc(9, -0.5, 4, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#0f172a';
+            c.beginPath(); c.arc(10.5, -2, 3.2, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#fff';
+            c.beginPath(); c.arc(11.4, -3, 0.9, 0, Math.PI * 2); c.fill();
 
-            dfCtx.save();
-            dfCtx.rotate(wingAngle);
-            dfCtx.beginPath();
-            dfCtx.ellipse(7, -13, 18, 4, Math.PI / 6, 0, Math.PI * 2);
-            dfCtx.ellipse(-7, -13, 18, 4, -Math.PI / 6, 0, Math.PI * 2);
-            dfCtx.fill();
-            dfCtx.stroke();
-            dfCtx.restore();
+            // cánh gần
+            wing(3, 0.35 + flap * 0.35, 0.85, 26);
+            wing(-2, 0.35 - flap * 0.35, 0.85, 24);
 
-            dfCtx.save();
-            dfCtx.rotate(-wingAngle * 0.8);
-            dfCtx.beginPath();
-            dfCtx.ellipse(8, -5, 14, 3.5, Math.PI / 10, 0, Math.PI * 2);
-            dfCtx.ellipse(-8, -5, 14, 3.5, -Math.PI / 10, 0, Math.PI * 2);
-            dfCtx.fill();
-            dfCtx.stroke();
-            dfCtx.restore();
-
-            // Tail Body
-            dfCtx.fillStyle = '#10b981';
-            dfCtx.beginPath();
-            dfCtx.moveTo(-2, 5);
-            dfCtx.lineTo(2, 5);
-            dfCtx.lineTo(1, 28);
-            dfCtx.lineTo(-1, 28);
-            dfCtx.closePath();
-            dfCtx.fill();
-
-            // Thorax & Head
-            dfCtx.beginPath();
-            dfCtx.ellipse(0, 1, 4, 6.5, 0, 0, Math.PI * 2);
-            dfCtx.fill();
-
-            dfCtx.fillStyle = '#0f172a';
-            dfCtx.beginPath();
-            dfCtx.arc(-3, -3, 3, 0, Math.PI * 2);
-            dfCtx.arc(3, -3, 3, 0, Math.PI * 2);
-            dfCtx.fill();
-
-            dfCtx.fillStyle = '#ffffff';
-            dfCtx.beginPath();
-            dfCtx.arc(-3.8, -4, 0.9, 0, Math.PI * 2);
-            dfCtx.arc(2.2, -4, 0.9, 0, Math.PI * 2);
-            dfCtx.fill();
-
-            dfCtx.restore();
+            c.restore();
         }
 
         // --- PER QUESTION TIMER ---
@@ -794,33 +777,84 @@
             }, 1000);
         }
 
+        // --- ÔN TẬP NGẮT QUÃNG (Leitner theo ngày) ---
+        const INTERVALS = [1, 2, 4, 7, 14]; // số ngày giữa các lần ôn; vượt hết = đã thuộc
+        let wrongBook = {};   // "7x8" -> {a,b,box,due,wrongCount,mastered,lastWrong}
+        let retryQueue = [];  // câu sai trong phiên này, chỉ hỏi lại 1 lần ở chế độ ngẫu nhiên
+        let currentKey = '';
+        let attemptWrong = false;
+        let currentSource = 'random'; // random | retry | review
+
+        const pad2 = n => String(n).padStart(2, '0');
+        function dateStr(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+        function todayStr() { return dateStr(new Date()); }
+        function addDaysStr(n) { const d = new Date(); d.setDate(d.getDate() + n); return dateStr(d); }
+        function daysUntil(s) { return Math.round((new Date(s + 'T00:00:00') - new Date(todayStr() + 'T00:00:00')) / 86400000); }
+        function whenLabel(s) {
+            const n = daysUntil(s);
+            if (n <= 0) return 'hôm nay';
+            if (n === 1) return 'ngày mai';
+            const p = s.split('-'); return `${p[2]}/${p[1]}`;
+        }
+        function dueKeys() { const t = todayStr(); return Object.keys(wrongBook).filter(k => !wrongBook[k].mastered && wrongBook[k].due <= t); }
+        function activeKeys() { return Object.keys(wrongBook).filter(k => !wrongBook[k].mastered); }
+
+        function updateDueBadge() {
+            const b = document.getElementById('due-badge');
+            if (!b) return;
+            const n = dueKeys().length;
+            b.textContent = n;
+            b.classList.toggle('hidden', n === 0);
+        }
+
+        function registerWrong() {
+            if (attemptWrong) return;
+            attemptWrong = true;
+            const k = currentKey;
+            const e = wrongBook[k] || { a: currentNumA, b: currentNumB, wrongCount: 0 };
+            e.wrongCount++; e.box = 0; e.mastered = false;
+            e.due = addDaysStr(1); e.lastWrong = todayStr();
+            wrongBook[k] = e;
+            if (currentSource === 'random' && !retryQueue.includes(k)) retryQueue.push(k);
+            saveLocalStorageData();
+            updateDueBadge();
+        }
+
+        function registerCorrect() {
+            const e = wrongBook[currentKey];
+            if (attemptWrong || !e || e.mastered || e.due > todayStr()) return '';
+            e.box++;
+            if (e.box >= INTERVALS.length) {
+                e.mastered = true;
+                return ' 🏅 Bé đã thuộc câu này rồi!';
+            }
+            e.due = addDaysStr(INTERVALS[e.box]);
+            return ` (ôn lại ${whenLabel(e.due)})`;
+        }
+
         function handlePerQuestionTimeout() {
             streak = 0;
             totalAnswered++;
-            
-            // Mark question in Spaced Repetition memory as needing review
-            const key = `${currentNumA}x${currentNumB}`;
-            questionWeights[key] = (questionWeights[key] || 10) + 8;
-            saveLocalStorageData();
-
+            registerWrong();
             updateScoreDisplay();
             playSound('wrong');
             triggerDragonflyAttack(false);
-            setFeedbackMsg(`⏱️ Hết giờ rồi! Phép tính này sẽ được đưa vào danh sách ôn lại.`, 'wrong');
-            setTimeout(() => {
-                generateQuestion();
-            }, 1500);
+            setFeedbackMsg(`⏱️ Hết giờ! ${currentNumA} × ${currentNumB} = <strong>${currentNumA * currentNumB}</strong>. Câu này sẽ được ôn lại vào ngày mai.`, 'wrong');
+            setTimeout(generateQuestion, 1800);
         }
 
-        function initWeights() {
-            for (let a = 2; a <= 9; a++) {
-                for (let b = 1; b <= 10; b++) {
-                    const key = `${a}x${b}`;
-                    if (!questionWeights[key]) {
-                        questionWeights[key] = 10;
-                    }
-                }
-            }
+        function markCurrentMastered() {
+            const e = wrongBook[currentKey];
+            if (!e) return;
+            playSound('click');
+            clearInterval(perQuestionInterval);
+            e.mastered = true;
+            retryQueue = retryQueue.filter(k => k !== currentKey);
+            saveLocalStorageData();
+            updateDueBadge();
+            setFeedbackMsg(`✅ Đã đánh dấu <strong>${e.a} × ${e.b}</strong> là đã thuộc!`, 'correct');
+            document.getElementById('mastered-btn').classList.add('hidden');
+            setTimeout(generateQuestion, 900);
         }
 
         function renderTableSelector() {
@@ -863,50 +897,64 @@
 
         function generateQuestion() {
             if (selectedTables.length === 0) selectedTables = [2];
+            let pick = null, extra = false;
 
-            const useSpacedRepetition = Math.random() < 0.7;
-            let candidates = [];
-
-            selectedTables.forEach(a => {
-                for (let b = 1; b <= 10; b++) {
-                    const key = `${a}x${b}`;
-                    const weight = questionWeights[key] || 10;
-                    candidates.push({ a, b, key, weight });
+            if (currentMode === 'review') {
+                let pool = dueKeys();
+                if (!pool.length) { pool = activeKeys(); extra = true; }
+                if (pool.length > 1) pool = pool.filter(k => k !== currentKey);
+                if (pool.length) pick = { key: pool[Math.floor(Math.random() * pool.length)], source: 'review' };
+                else {
+                    setMode('practice');
+                    setFeedbackMsg('🎉 Bé đã ôn xong hết các câu sai! Giỏi quá!', 'correct');
+                    return;
                 }
-            });
-
-            if (useSpacedRepetition && candidates.some(c => c.weight > 10)) {
-                const hardCandidates = candidates.filter(c => c.weight > 10);
-                const chosen = hardCandidates[Math.floor(Math.random() * hardCandidates.length)];
-                currentNumA = chosen.a;
-                currentNumB = chosen.b;
-                isSpacedRepetitionQuestion = true;
-            } else {
-                currentNumA = selectedTables[Math.floor(Math.random() * selectedTables.length)];
-                currentNumB = Math.floor(Math.random() * 10) + 1;
-                isSpacedRepetitionQuestion = false;
+            } else if (retryQueue.length && (retryQueue.length >= 3 || Math.random() < 0.4)) {
+                pick = { key: retryQueue.shift(), source: 'retry' };
             }
 
+            if (!pick) {
+                let a, b, key, tries = 0;
+                do {
+                    a = selectedTables[Math.floor(Math.random() * selectedTables.length)];
+                    b = Math.floor(Math.random() * 10) + 1;
+                    key = `${a}x${b}`;
+                } while (key === currentKey && ++tries < 6);
+                pick = { key, source: 'random' };
+            }
+
+            const parts = pick.key.split('x');
+            currentNumA = parseInt(parts[0]);
+            currentNumB = parseInt(parts[1]);
+            currentKey = pick.key;
+            currentSource = pick.source;
+            attemptWrong = false;
             currentAnswerInput = '';
+
             document.getElementById('num-a').textContent = currentNumA;
             document.getElementById('num-b').textContent = currentNumB;
             document.getElementById('ans-text').textContent = '?';
             document.getElementById('ans-box').className = "w-16 h-12 sm:w-20 sm:h-16 bg-slate-50 border-2 border-indigo-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-800 shadow-inner";
 
-            const spacedBadge = document.getElementById('spaced-badge');
-            if (isSpacedRepetitionQuestion) {
-                spacedBadge.classList.remove('hidden');
+            const badge = document.getElementById('spaced-badge');
+            if (pick.source === 'review') {
+                badge.innerHTML = `<i class="fa-solid fa-rotate"></i> ${extra ? 'Ôn thêm' : 'Ôn lại'}`;
+                badge.classList.remove('hidden');
+            } else if (pick.source === 'retry') {
+                badge.innerHTML = `<i class="fa-solid fa-rotate"></i> Hỏi lại câu sai`;
+                badge.classList.remove('hidden');
             } else {
-                spacedBadge.classList.add('hidden');
+                badge.classList.add('hidden');
             }
 
-            setFeedbackMsg(`Phép tính: <strong class="text-indigo-600">${currentNumA} × ${currentNumB}</strong>`, 'neutral');
-            
-            startPerQuestionTimer();
+            const e = wrongBook[currentKey];
+            document.getElementById('mastered-btn').classList.toggle('hidden', !(e && !e.mastered));
 
-            setTimeout(() => {
-                readQuestionSpeech();
-            }, 250);
+            isSpacedRepetitionQuestion = pick.source !== 'random';
+            setFeedbackMsg(`Phép tính: <strong class="text-indigo-600">${currentNumA} × ${currentNumB}</strong>`, 'neutral');
+            updateDueBadge();
+            startPerQuestionTimer();
+            setTimeout(readQuestionSpeech, 250);
         }
 
         function pressNumpad(num) {
@@ -925,13 +973,10 @@
 
         function submitAnswer() {
             if (!currentAnswerInput) return;
-
             clearInterval(perQuestionInterval);
 
             const userAns = parseInt(currentAnswerInput);
             const correctAns = currentNumA * currentNumB;
-            const key = `${currentNumA}x${currentNumB}`;
-
             totalAnswered++;
 
             if (userAns === correctAns) {
@@ -940,10 +985,9 @@
                 streak++;
                 if (streak > maxStreak) maxStreak = streak;
 
+                const note = registerCorrect();
                 playSound('correct', streak);
                 triggerDragonflyAttack(true);
-
-                questionWeights[key] = Math.max(5, (questionWeights[key] || 10) - 3);
 
                 if (streak % 5 === 0) {
                     setTimeout(() => playSound('fanfare'), 120);
@@ -952,30 +996,23 @@
                     confetti({ particleCount: 35, spread: 40, origin: { y: 0.6 } });
                 }
 
-                setFeedbackMsg(`🎉 <strong class="text-emerald-600">CHÍNH XÁC!</strong> ${currentNumA} × ${currentNumB} = ${correctAns}`, 'correct');
+                setFeedbackMsg(`🎉 <strong class="text-emerald-600">CHÍNH XÁC!</strong> ${currentNumA} × ${currentNumB} = ${correctAns}${note}`, 'correct');
                 saveLocalStorageData();
                 updateScoreDisplay();
-
-                setTimeout(() => {
-                    generateQuestion();
-                }, 1200);
-
+                updateDueBadge();
+                setTimeout(generateQuestion, 1200);
             } else {
                 playSound('wrong');
                 streak = 0;
                 triggerDragonflyAttack(false);
-
-                questionWeights[key] = (questionWeights[key] || 10) + 8;
-
+                registerWrong();
                 saveLocalStorageData();
                 updateScoreDisplay();
 
                 document.getElementById('ans-box').className = "w-16 h-12 sm:w-20 sm:h-16 bg-rose-50 border-2 border-rose-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-rose-600 shadow-inner shake-err";
                 setFeedbackMsg(`Chưa chính xác! Bé nhẩm lại bảng cửu chương <strong>${currentNumA}</strong> nhe! 💪`, 'wrong');
-
-                setTimeout(() => {
-                    clearInput();
-                }, 1000);
+                document.getElementById('mastered-btn').classList.add('hidden');
+                setTimeout(clearInput, 1000);
             }
         }
 
@@ -999,24 +1036,21 @@
 
         function setMode(mode) {
             playSound('click');
-            currentMode = mode;
-            const practiceBtn = document.getElementById('mode-practice-btn');
-            const challengeBtn = document.getElementById('mode-challenge-btn');
-            const timerBadge = document.getElementById('timer-badge');
-
-            if (mode === 'practice') {
-                clearInterval(challengeTimer);
-                isChallengeActive = false;
-                practiceBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-indigo-600 text-white shadow-xs";
-                challengeBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50";
-                timerBadge.classList.add('hidden');
-                generateQuestion();
-            } else {
-                challengeBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-amber-500 text-white shadow-xs";
-                practiceBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50";
-                timerBadge.classList.remove('hidden');
-                startChallenge();
+            if (mode === 'review' && activeKeys().length === 0) {
+                setFeedbackMsg('🎉 Bé chưa có câu sai nào cần ôn. Cứ luyện tập tiếp nhe!', 'correct');
+                return;
             }
+            currentMode = mode;
+            clearInterval(challengeTimer);
+            isChallengeActive = false;
+            const base = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 ";
+            const styles = { practice: ['mode-practice-btn', 'bg-indigo-600'], review: ['mode-review-btn', 'bg-rose-500'], challenge: ['mode-challenge-btn', 'bg-amber-500'] };
+            Object.keys(styles).forEach(m => {
+                const el = document.getElementById(styles[m][0]);
+                if (el) el.className = base + (m === mode ? styles[m][1] + ' text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-indigo-50');
+            });
+            document.getElementById('timer-badge').classList.toggle('hidden', mode !== 'challenge');
+            if (mode === 'challenge') startChallenge(); else generateQuestion();
         }
 
         function startChallenge() {
@@ -1043,14 +1077,26 @@
         }
 
         function saveLocalStorageData() {
-            localStorage.setItem('multiplication_weights', JSON.stringify(questionWeights));
+            localStorage.setItem('multiplication_wrongbook', JSON.stringify(wrongBook));
             localStorage.setItem('multiplication_stats', JSON.stringify({ score, maxStreak, totalAnswered, totalCorrect }));
         }
 
         function loadLocalStorageData() {
-            const savedWeights = localStorage.getItem('multiplication_weights');
-            if (savedWeights) {
-                try { questionWeights = JSON.parse(savedWeights); } catch(e) {}
+            const sb = localStorage.getItem('multiplication_wrongbook');
+            if (sb) {
+                try { wrongBook = JSON.parse(sb) || {}; } catch (e) { wrongBook = {}; }
+            } else {
+                // chuyển dữ liệu v2.3 (trọng số) sang sổ câu sai mới
+                try {
+                    const old = JSON.parse(localStorage.getItem('multiplication_weights') || '{}');
+                    for (const k in old) {
+                        if (old[k] > 10) {
+                            const p = k.split('x');
+                            wrongBook[k] = { a: parseInt(p[0]), b: parseInt(p[1]), box: 0, due: todayStr(),
+                                wrongCount: Math.max(1, Math.round((old[k] - 10) / 8)), mastered: false, lastWrong: todayStr() };
+                        }
+                    }
+                } catch (e) {}
             }
             const savedStats = localStorage.getItem('multiplication_stats');
             if (savedStats) {
@@ -1059,8 +1105,45 @@
                     maxStreak = st.maxStreak || 0;
                     totalAnswered = st.totalAnswered || 0;
                     totalCorrect = st.totalCorrect || 0;
-                } catch(e) {}
+                } catch (e) {}
             }
+        }
+
+        function renderParentList() {
+            const list = document.getElementById('parent-mistakes-list');
+            const items = Object.keys(wrongBook).map(k => Object.assign({ k }, wrongBook[k]));
+            if (!items.length) {
+                list.innerHTML = `<div class="text-slate-400 italic text-center py-2">Bé đang làm rất tốt, chưa có câu nào bị sai! 🎉</div>`;
+                return;
+            }
+            items.sort((x, y) => (x.mastered - y.mastered) || (x.due < y.due ? -1 : x.due > y.due ? 1 : 0) || (y.wrongCount - x.wrongCount));
+            list.innerHTML = items.map(it => {
+                const eq = `${it.a} × ${it.b} = ${it.a * it.b}`;
+                if (it.mastered) {
+                    return `<div class="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-between opacity-70">
+                        <span class="font-extrabold text-slate-500">${eq}</span>
+                        <button onclick="toggleMastered('${it.k}')" class="text-[10px] bg-white border border-slate-300 text-slate-600 font-bold px-2 py-0.5 rounded-md">✅ Đã thuộc · Hoàn tác</button>
+                    </div>`;
+                }
+                return `<div class="bg-amber-50 border border-amber-200 p-2 rounded-xl flex items-center justify-between gap-2">
+                    <div><div class="font-extrabold text-amber-900">${eq}</div>
+                    <div class="text-[10px] text-amber-700 font-bold">Sai ${it.wrongCount} lần · ôn lại: ${whenLabel(it.due)}</div></div>
+                    <button onclick="toggleMastered('${it.k}')" class="text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-2 py-1 rounded-md shrink-0">Đã thuộc ✓</button>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleMastered(k) {
+            const e = wrongBook[k];
+            if (!e) return;
+            playSound('click');
+            if (e.mastered) { e.mastered = false; e.box = 0; e.due = todayStr(); }
+            else { e.mastered = true; retryQueue = retryQueue.filter(x => x !== k); }
+            saveLocalStorageData();
+            updateDueBadge();
+            renderParentList();
+            const btn = document.getElementById('mastered-btn');
+            if (btn && k === currentKey) btn.classList.toggle('hidden', !!e.mastered ? true : false);
         }
 
         function openParentModal() {
@@ -1069,32 +1152,7 @@
             const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
             document.getElementById('stat-accuracy').textContent = `${accuracy}%`;
             document.getElementById('stat-max-streak').textContent = maxStreak;
-
-            const listContainer = document.getElementById('parent-mistakes-list');
-            let sorted = [];
-            for (let key in questionWeights) {
-                if (questionWeights[key] > 10) {
-                    const parts = key.split('x');
-                    sorted.push({ a: parts[0], b: parts[1], weight: questionWeights[key] });
-                }
-            }
-            sorted.sort((a, b) => b.weight - a.weight);
-
-            if (sorted.length === 0) {
-                listContainer.innerHTML = `<div class="text-slate-400 italic text-center py-2">Bé đang làm rất tốt, chưa có câu nào bị hổng kiến thức! 🎉</div>`;
-            } else {
-                let html = '';
-                sorted.slice(0, 6).forEach(item => {
-                    html += `
-                        <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl flex items-center justify-between">
-                            <span class="font-extrabold text-amber-900">${item.a} × ${item.b} = ${item.a * item.b}</span>
-                            <span class="text-[10px] bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-md">Cần luyện thêm</span>
-                        </div>
-                    `;
-                });
-                listContainer.innerHTML = html;
-            }
-
+            renderParentList();
             document.getElementById('parent-modal').classList.remove('hidden');
         }
 
@@ -1104,16 +1162,14 @@
         }
 
         function resetAllData() {
+            if (!confirm('Xóa toàn bộ thống kê và danh sách câu sai?')) return;
             playSound('click');
-            questionWeights = {};
-            initWeights();
-            score = 0;
-            streak = 0;
-            maxStreak = 0;
-            totalAnswered = 0;
-            totalCorrect = 0;
+            wrongBook = {};
+            retryQueue = [];
+            score = 0; streak = 0; maxStreak = 0; totalAnswered = 0; totalCorrect = 0;
             saveLocalStorageData();
             updateScoreDisplay();
+            updateDueBadge();
             openParentModal();
         }
 
