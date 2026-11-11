@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bé Giỏi Bảng Cửu Chương v2.5</title>
+    <title>Bé Giỏi Bảng Cửu Chương v2.6</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -80,6 +80,20 @@
             #app-main .numpad-card { grid-area: numpad; }
         }
         .numpad-grid { flex: 1; grid-template-rows: repeat(4, minmax(0, 1fr)); }
+            /* Dọc: phần chính liền nhau, đề bài luôn hiện */
+        @media (orientation: portrait) {
+            #app-main { gap: 0.4rem; min-height: min-content; }
+            .canvas-container { height: 16vh; }
+            #app-main .game-grid { flex: 1 0 auto; min-height: 28rem; }
+        }
+        @media (orientation: landscape) and (max-width: 899px) { #app-main { min-height: min-content; } }
+        @media (orientation: landscape) and (min-width: 900px) {
+            #app-main.settings-off {
+                grid-template-areas: "canvas mode" "question numpad";
+                grid-template-rows: auto minmax(0, 1fr);
+            }
+            #app-main.settings-off .area-mode { align-self: center; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 h-[100dvh] text-slate-700 flex flex-col justify-between p-2 sm:p-3 overflow-x-hidden overflow-y-auto">
@@ -92,11 +106,14 @@
             </div>
             <div>
                 <h1 class="text-sm sm:text-base font-black text-slate-800 leading-none">Bé Giỏi Bảng Cửu Chương</h1>
-                <p class="text-[0.625rem] text-slate-400 font-bold hidden sm:block">Phiên bản v2.5 • Ôn câu sai ngắt quãng & Chuồn chuồn bắt mồi</p>
+                <p class="text-[0.625rem] text-slate-400 font-bold hidden sm:block">Phiên bản v2.6 • Ôn câu sai ngắt quãng & Chuồn chuồn bắt mồi</p>
             </div>
         </div>
 
         <div class="flex items-center gap-1.5">
+            <button onclick="toggleSettings()" id="settings-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 transition">
+                <i class="fa-solid fa-gear"></i> <span>Cài đặt</span>
+            </button>
             <button onclick="openTableModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 transition">
                 <i class="fa-solid fa-book-open"></i> <span>Xem bảng</span>
             </button>
@@ -122,7 +139,7 @@
         </div>
 
         <!-- SETUP BAR: CHỌN BẢNG (2-9) & THỜI GIAN CÂU HỎI -->
-        <div class="area-setup bg-white rounded-xl p-2.5 shadow-xs border border-slate-200 flex flex-col gap-1.5 shrink-0">
+        <div id="setup-panel" class="hidden area-setup bg-white rounded-xl p-2.5 shadow-xs border border-slate-200 flex flex-col gap-1.5 shrink-0">
             <div class="flex items-center justify-between text-[0.6875rem] font-extrabold text-slate-700">
                 <span class="flex items-center gap-1">
                     <i class="fa-solid fa-list-check text-indigo-500"></i> Chọn bảng ôn tập:
@@ -264,7 +281,7 @@
 
     <!-- FOOTER -->
     <footer class="text-center text-[0.625rem] text-slate-400 py-0.5 shrink-0">
-        Bé Giỏi Bảng Cửu Chương v2.5 • Học thông minh với Spaced Repetition
+        Bé Giỏi Bảng Cửu Chương v2.6 • Học thông minh với Spaced Repetition
     </footer>
 
     <!-- MODAL 1: GÓC PHỤ HUYNH -->
@@ -586,6 +603,21 @@
             } catch (e) {}
         }
 
+        function applySettingsVisibility(open) {
+            document.getElementById('setup-panel').classList.toggle('hidden', !open);
+            document.getElementById('app-main').classList.toggle('settings-off', !open);
+            const b = document.getElementById('settings-btn');
+            b.className = "font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 transition " +
+                (open ? "bg-indigo-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-600");
+            try { localStorage.setItem('mc_settings_open', open ? '1' : '0'); } catch (e) {}
+            setTimeout(resizeDragonflyCanvas, 50);
+        }
+
+        function toggleSettings() {
+            playSound('click');
+            applySettingsVisibility(document.getElementById('setup-panel').classList.contains('hidden'));
+        }
+
         function toggleSound() {
             soundEnabled = !soundEnabled;
             document.getElementById('sound-icon').className = soundEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark";
@@ -594,6 +626,8 @@
         window.onload = function() {
             loadLocalStorageData();
             updateScoreDisplay();
+            let so = '0'; try { so = localStorage.getItem('mc_settings_open') || '0'; } catch (e) {}
+            applySettingsVisibility(so === '1');
             initDragonflyCanvas();
             renderTableSelector();
             renderTableModalContent();
