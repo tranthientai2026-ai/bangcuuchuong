@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bé Giỏi Bảng Cửu Chương v2.4</title>
+    <title>Bé Giỏi Bảng Cửu Chương v2.5</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -44,6 +44,7 @@
             border: 1px solid #bbf7d0;
         }
         canvas {
+            position: absolute; inset: 0;
             display: block;
             width: 100%;
             height: 100%;
@@ -52,19 +53,46 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    
+        html { font-size: clamp(14px, min(calc(100vw / 90), calc(100vh / 48)), 30px); }
+        @media (orientation: portrait) { html { font-size: clamp(15px, calc(100vw / 32), 34px); } }
+        html, body { height: 100%; }
+        .canvas-container { min-height: 7rem; }
+        @media (orientation: portrait) {
+            .canvas-container { height: 22vh; }
+            #app-main .game-grid { grid-template-columns: 1fr; grid-template-rows: 1.1fr 1fr; }
+        }
+        @media (orientation: landscape) and (max-width: 899px) {
+            #app-main .game-grid { grid-template-columns: 7fr 5fr; }
+        }
+        /* Landscape (Full HD 1920x1080 ...): 2 cột */
+        @media (orientation: landscape) and (min-width: 900px) {
+            #app-main {
+                display: grid; grid-template-columns: 1.15fr 1fr; grid-template-rows: auto auto minmax(0, 1fr);
+                grid-template-areas: "canvas setup" "canvas mode" "question numpad";
+                gap: 0.6rem; justify-content: normal;
+            }
+            #app-main .canvas-container { grid-area: canvas; height: auto; min-height: 24vh; }
+            #app-main .area-setup { grid-area: setup; justify-content: center; }
+            #app-main .area-mode { grid-area: mode; }
+            #app-main .game-grid { display: contents; }
+            #app-main .q-card { grid-area: question; }
+            #app-main .numpad-card { grid-area: numpad; }
+        }
+        .numpad-grid { flex: 1; grid-template-rows: repeat(4, minmax(0, 1fr)); }
     </style>
 </head>
-<body class="bg-slate-100 h-screen text-slate-700 flex flex-col justify-between p-1.5 sm:p-2.5 overflow-hidden">
+<body class="bg-slate-100 h-[100dvh] text-slate-700 flex flex-col justify-between p-2 sm:p-3 overflow-x-hidden overflow-y-auto">
 
     <!-- HEADER -->
-    <header class="max-w-4xl w-full mx-auto bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex items-center justify-between gap-2 shrink-0">
+    <header class="max-w-[110rem] w-full mx-auto bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex items-center justify-between gap-2 shrink-0">
         <div class="flex items-center space-x-2">
             <div class="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center text-white text-base font-black shadow-xs">
                 ⭐
             </div>
             <div>
                 <h1 class="text-sm sm:text-base font-black text-slate-800 leading-none">Bé Giỏi Bảng Cửu Chương</h1>
-                <p class="text-[10px] text-slate-400 font-bold hidden sm:block">Phiên bản v2.4 • Ôn câu sai ngắt quãng & Chuồn chuồn bắt mồi</p>
+                <p class="text-[0.625rem] text-slate-400 font-bold hidden sm:block">Phiên bản v2.5 • Ôn câu sai ngắt quãng & Chuồn chuồn bắt mồi</p>
             </div>
         </div>
 
@@ -82,20 +110,20 @@
     </header>
 
     <!-- MAIN APP CONTAINER -->
-    <main class="max-w-4xl w-full mx-auto my-1 flex-1 flex flex-col gap-1.5 min-h-0 justify-between">
+    <main id="app-main" class="max-w-[110rem] w-full mx-auto my-1 flex-1 flex flex-col gap-1.5 min-h-0 justify-between">
 
         <!-- DRAGONFLY MINI-GAME CANVAS -->
         <div class="canvas-container relative shadow-xs shrink-0">
             <canvas id="dragonflyCanvas"></canvas>
-            <div class="absolute top-1.5 left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded-full text-[11px] font-black text-slate-700 shadow-xs flex items-center gap-1">
+            <div class="absolute top-1.5 left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded-full text-[0.6875rem] font-black text-slate-700 shadow-xs flex items-center gap-1">
                 <span>🔥 Streak:</span>
                 <span id="canvas-streak-text" class="text-emerald-600">0</span>
             </div>
         </div>
 
         <!-- SETUP BAR: CHỌN BẢNG (2-9) & THỜI GIAN CÂU HỎI -->
-        <div class="bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex flex-col gap-1 shrink-0">
-            <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-700">
+        <div class="area-setup bg-white rounded-xl p-2.5 shadow-xs border border-slate-200 flex flex-col gap-1.5 shrink-0">
+            <div class="flex items-center justify-between text-[0.6875rem] font-extrabold text-slate-700">
                 <span class="flex items-center gap-1">
                     <i class="fa-solid fa-list-check text-indigo-500"></i> Chọn bảng ôn tập:
                 </span>
@@ -109,7 +137,7 @@
             </div>
 
             <!-- TÙY CHỌN THỜI GIAN MỖI CÂU -->
-            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] font-bold text-slate-600">
+            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[0.6875rem] font-bold text-slate-600">
                 <span class="flex items-center gap-1"><i class="fa-regular fa-clock text-amber-500"></i> Thời gian/câu:</span>
                 <div class="flex gap-1">
                     <button onclick="setPerQuestionTimer(5)" id="qtimer-5" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">5s</button>
@@ -121,20 +149,20 @@
         </div>
 
         <!-- MODE SELECTOR & STATS BAR -->
-        <div class="bg-white rounded-xl p-1.5 shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
+        <div class="area-mode bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
             <div class="flex gap-1">
-                <button id="mode-practice-btn" onclick="setMode('practice')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-indigo-600 text-white shadow-xs">
+                <button id="mode-practice-btn" onclick="setMode('practice')" class="py-1 px-2.5 rounded-lg text-[0.6875rem] font-extrabold transition flex items-center gap-1 bg-indigo-600 text-white shadow-xs">
                     <i class="fa-solid fa-graduation-cap"></i> Luyện tập
                 </button>
-                <button id="mode-review-btn" onclick="setMode('review')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50">
-                    <i class="fa-solid fa-rotate-right text-rose-500"></i> Ôn câu sai <span id="due-badge" class="bg-rose-500 text-white rounded-full px-1.5 text-[10px] hidden">0</span>
+                <button id="mode-review-btn" onclick="setMode('review')" class="py-1 px-2.5 rounded-lg text-[0.6875rem] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50">
+                    <i class="fa-solid fa-rotate-right text-rose-500"></i> Ôn câu sai <span id="due-badge" class="bg-rose-500 text-white rounded-full px-1.5 text-[0.625rem] hidden">0</span>
                 </button>
-                <button id="mode-challenge-btn" onclick="setMode('challenge')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50">
+                <button id="mode-challenge-btn" onclick="setMode('challenge')" class="py-1 px-2.5 rounded-lg text-[0.6875rem] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50">
                     <i class="fa-solid fa-stopwatch text-amber-500"></i> 60s
                 </button>
             </div>
 
-            <div class="flex items-center gap-1.5 text-[11px] font-extrabold">
+            <div class="flex items-center gap-1.5 text-[0.6875rem] font-extrabold">
                 <span id="timer-badge" class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-200 hidden">
                     ⏱️ <strong id="timer-val">60s</strong>
                 </span>
@@ -148,10 +176,10 @@
         </div>
 
         <!-- MAIN GAME WORKSPACE (COMPACT 2 COLUMNS) -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-stretch flex-1 min-h-0">
+        <div class="game-grid grid grid-cols-1 gap-2 items-stretch flex-1 min-h-0">
 
             <!-- LEFT: QUESTION CARD -->
-            <div class="md:col-span-7 bg-white rounded-xl p-2.5 shadow-xs border border-slate-200 flex flex-col items-center justify-between relative overflow-hidden">
+            <div class="q-card bg-white rounded-xl p-3 shadow-xs border border-slate-200 flex flex-col items-center justify-between relative overflow-hidden">
 
                 <!-- PER QUESTION COUNTDOWN BAR -->
                 <div class="absolute top-0 left-0 right-0 h-1 bg-slate-100">
@@ -159,25 +187,25 @@
                 </div>
 
                 <div class="w-full flex justify-between items-center mt-0.5">
-                    <span id="spaced-badge" class="text-[9px] font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 hidden">
+                    <span id="spaced-badge" class="text-[0.5625rem] font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 hidden">
                         <i class="fa-solid fa-rotate"></i> Ôn lại
                     </span>
                     <div class="flex items-center gap-1.5 ml-auto">
-                        <span id="qTimerText" class="text-[11px] font-black text-slate-400">10s</span>
-                        <button onclick="readQuestionSpeech()" title="Đọc to đề bài" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-extrabold px-2 py-0.5 rounded-lg text-[11px] flex items-center gap-1 transition">
+                        <span id="qTimerText" class="text-[0.6875rem] font-black text-slate-400">10s</span>
+                        <button onclick="readQuestionSpeech()" title="Đọc to đề bài" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-extrabold px-2 py-0.5 rounded-lg text-[0.6875rem] flex items-center gap-1 transition">
                             <i class="fa-solid fa-volume-high"></i> Đọc đề
                         </button>
                     </div>
                 </div>
 
                 <!-- MAIN QUESTION BOX -->
-                <div class="my-1 text-center">
-                    <div class="text-4xl sm:text-5xl font-black text-slate-800 flex items-center justify-center gap-2">
+                <div class="my-1 text-center flex-1 flex items-center justify-center">
+                    <div class="text-5xl sm:text-6xl font-black text-slate-800 flex items-center justify-center gap-2">
                         <span id="num-a" class="text-indigo-600">?</span>
                         <span class="text-pink-500 font-extrabold">×</span>
                         <span id="num-b" class="text-emerald-600">?</span>
                         <span class="text-slate-400 font-extrabold">=</span>
-                        <div id="ans-box" class="w-16 h-12 sm:w-20 sm:h-16 bg-slate-50 border-2 border-indigo-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-800 shadow-inner">
+                        <div id="ans-box" class="w-20 h-16 sm:w-28 sm:h-20 bg-slate-50 border-2 border-indigo-400 rounded-xl flex items-center justify-center text-4xl sm:text-5xl font-black text-slate-800 shadow-inner">
                             <span id="ans-text" class="text-indigo-600">?</span>
                         </div>
                     </div>
@@ -185,23 +213,23 @@
 
                 <!-- VOICE INPUT BUTTON -->
                 <div class="w-full flex justify-center">
-                    <button id="mic-btn" onclick="toggleVoiceRecognition()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold py-1.5 rounded-xl shadow-xs active:scale-95 transition flex items-center justify-center gap-1.5 text-xs">
+                    <button id="mic-btn" onclick="toggleVoiceRecognition()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold py-2.5 rounded-xl shadow-xs active:scale-95 transition flex items-center justify-center gap-1.5 text-sm">
                         <i class="fa-solid fa-microphone text-sm" id="mic-icon"></i>
                         <span id="mic-text">Bấm để NÓI ĐÁP ÁN 🎙️</span>
                     </button>
                 </div>
 
                 <!-- FEEDBACK MSG BOX -->
-                <div id="feedback-msg" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 my-1 text-center text-xs font-extrabold text-slate-600">
+                <div id="feedback-msg" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 my-1 text-center text-base font-extrabold text-slate-600">
                     Chọn các bảng cửu chương ở trên rùi bắt đầu nhe bé!
                 </div>
 
                 <!-- SKIP / MASTERED -->
                 <div class="w-full flex justify-between items-center">
-                    <button id="mastered-btn" onclick="markCurrentMastered()" class="hidden text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg hover:bg-emerald-100 transition">
+                    <button id="mastered-btn" onclick="markCurrentMastered()" class="hidden text-[0.625rem] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg hover:bg-emerald-100 transition">
                         ✅ Bé đã thuộc câu này
                     </button>
-                    <button onclick="skipQuestion()" class="ml-auto text-[10px] font-extrabold text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
+                    <button onclick="skipQuestion()" class="ml-auto text-[0.625rem] font-extrabold text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
                         Bỏ qua <i class="fa-solid fa-forward"></i>
                     </button>
                 </div>
@@ -209,23 +237,23 @@
             </div>
 
             <!-- RIGHT: NUMPAD -->
-            <div class="md:col-span-5 bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex flex-col justify-center">
-                <div class="grid grid-cols-3 gap-1.5">
-                    <button onclick="pressNumpad('1')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">1</button>
-                    <button onclick="pressNumpad('2')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">2</button>
-                    <button onclick="pressNumpad('3')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">3</button>
-                    <button onclick="pressNumpad('4')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">4</button>
-                    <button onclick="pressNumpad('5')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">5</button>
-                    <button onclick="pressNumpad('6')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">6</button>
-                    <button onclick="pressNumpad('7')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">7</button>
-                    <button onclick="pressNumpad('8')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">8</button>
-                    <button onclick="pressNumpad('9')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">9</button>
+            <div class="numpad-card bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex flex-col">
+                <div class="numpad-grid grid grid-cols-3 gap-2">
+                    <button onclick="pressNumpad('1')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">1</button>
+                    <button onclick="pressNumpad('2')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">2</button>
+                    <button onclick="pressNumpad('3')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">3</button>
+                    <button onclick="pressNumpad('4')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">4</button>
+                    <button onclick="pressNumpad('5')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">5</button>
+                    <button onclick="pressNumpad('6')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">6</button>
+                    <button onclick="pressNumpad('7')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">7</button>
+                    <button onclick="pressNumpad('8')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">8</button>
+                    <button onclick="pressNumpad('9')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">9</button>
                     <button onclick="clearInput()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs py-2 rounded-lg transition flex items-center justify-center">
-                        <i class="fa-solid fa-eraser text-base"></i>
+                        <i class="fa-solid fa-eraser text-2xl"></i>
                     </button>
-                    <button onclick="pressNumpad('0')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">0</button>
+                    <button onclick="pressNumpad('0')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-3xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">0</button>
                     <button onclick="submitAnswer()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-2 rounded-lg shadow-xs transition flex items-center justify-center">
-                        <i class="fa-solid fa-check text-lg"></i>
+                        <i class="fa-solid fa-check text-2xl"></i>
                     </button>
                 </div>
             </div>
@@ -235,8 +263,8 @@
     </main>
 
     <!-- FOOTER -->
-    <footer class="text-center text-[10px] text-slate-400 py-0.5 shrink-0">
-        Bé Giỏi Bảng Cửu Chương v2.4 • Học thông minh với Spaced Repetition
+    <footer class="text-center text-[0.625rem] text-slate-400 py-0.5 shrink-0">
+        Bé Giỏi Bảng Cửu Chương v2.5 • Học thông minh với Spaced Repetition
     </footer>
 
     <!-- MODAL 1: GÓC PHỤ HUYNH -->
@@ -254,15 +282,15 @@
             <div class="flex-1 overflow-y-auto space-y-3 pr-1 my-2 text-xs">
                 <div class="grid grid-cols-3 gap-2 text-center">
                     <div class="bg-indigo-50 border border-indigo-100 p-2 rounded-xl">
-                        <span class="text-slate-400 block text-[10px]">Đã làm</span>
+                        <span class="text-slate-400 block text-[0.625rem]">Đã làm</span>
                         <strong id="stat-total-answers" class="text-indigo-600 text-base">0</strong>
                     </div>
                     <div class="bg-emerald-50 border border-emerald-100 p-2 rounded-xl">
-                        <span class="text-slate-400 block text-[10px]">Tỷ lệ đúng</span>
+                        <span class="text-slate-400 block text-[0.625rem]">Tỷ lệ đúng</span>
                         <strong id="stat-accuracy" class="text-emerald-600 text-base">0%</strong>
                     </div>
                     <div class="bg-amber-50 border border-amber-100 p-2 rounded-xl">
-                        <span class="text-slate-400 block text-[10px]">Chuỗi kỷ lục</span>
+                        <span class="text-slate-400 block text-[0.625rem]">Chuỗi kỷ lục</span>
                         <strong id="stat-max-streak" class="text-amber-600 text-base">0</strong>
                     </div>
                 </div>
@@ -451,7 +479,7 @@
                 isListening = true;
                 const micBtn = document.getElementById('mic-btn');
                 if (micBtn) {
-                    micBtn.className = "w-full bg-rose-600 text-white font-black py-1.5 rounded-xl shadow-xs animate-pulse flex items-center justify-center gap-1.5 text-xs";
+                    micBtn.className = "w-full bg-rose-600 text-white font-black py-2.5 rounded-xl shadow-xs animate-pulse flex items-center justify-center gap-1.5 text-sm";
                     document.getElementById('mic-icon').className = "fa-solid fa-microphone-lines text-sm text-yellow-300";
                     document.getElementById('mic-text').textContent = "Đang lắng nghe... Bé hãy nói đáp án!";
                 }
@@ -489,7 +517,7 @@
             isListening = false;
             const micBtn = document.getElementById('mic-btn');
             if (micBtn) {
-                micBtn.className = "w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold py-1.5 rounded-xl shadow-xs active:scale-95 transition flex items-center justify-center gap-1.5 text-xs";
+                micBtn.className = "w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold py-2.5 rounded-xl shadow-xs active:scale-95 transition flex items-center justify-center gap-1.5 text-sm";
                 document.getElementById('mic-icon').className = "fa-solid fa-microphone text-sm";
                 document.getElementById('mic-text').textContent = "Bấm để NÓI ĐÁP ÁN 🎙️";
             }
@@ -575,7 +603,7 @@
         };
 
         // --- DRAGONFLY CANVAS ENGINE (khung ngang) ---
-        let dfW = 300, dfH = 120;
+        let dfW = 300, dfH = 120, dfScale = 1;
 
         function initDragonflyCanvas() {
             dfCanvas = document.getElementById('dragonflyCanvas');
@@ -590,6 +618,7 @@
             const rect = dfCanvas.parentElement.getBoundingClientRect();
             const dpr = window.devicePixelRatio || 1;
             dfW = rect.width; dfH = rect.height;
+            dfScale = Math.max(0.8, dfH / 120);
             dfCanvas.width = Math.round(dfW * dpr);
             dfCanvas.height = Math.round(dfH * dpr);
             dfCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -612,12 +641,13 @@
             if (!dfCtx || !dfCanvas) return;
             dfCtx.clearRect(0, 0, dfW, dfH);
 
+            dfCtx.save(); dfCtx.scale(dfScale, dfScale);
             dfCtx.fillStyle = 'rgba(255,255,255,0.7)';
             dfCtx.beginPath();
             dfCtx.arc(40, 25, 14, 0, Math.PI * 2);
             dfCtx.arc(58, 20, 18, 0, Math.PI * 2);
             dfCtx.arc(76, 25, 14, 0, Math.PI * 2);
-            dfCtx.fill();
+            dfCtx.fill(); dfCtx.restore();
 
             const homeX = dfW * 0.2, homeY = dfH * 0.55, preyBaseX = dfW * 0.8;
             const t = ts * 0.003;
@@ -625,18 +655,18 @@
             let facing = 1, carry = false;
 
             if (dfAnimState === 'IDLE') {
-                dragonflyPos.targetX = homeX + Math.sin(t) * 10;
-                dragonflyPos.targetY = homeY + Math.cos(t * 1.5) * 6;
+                dragonflyPos.targetX = homeX + Math.sin(t) * 10 * dfScale;
+                dragonflyPos.targetY = homeY + Math.cos(t * 1.5) * 6 * dfScale;
                 preyPos.x = preyBaseX;
-                preyPos.y = homeY + Math.sin(t * 2) * 8;
+                preyPos.y = homeY + Math.sin(t * 2) * 8 * dfScale;
                 preyPos.active = true;
             } else {
                 const ok = dfAnimState === 'ATTACK_SUCCESS';
                 dfAnimProgress += 0.02;
                 const p = dfAnimProgress;
-                const reachX = preyBaseX - 24;
-                const reachY = ok ? homeY : homeY - 26;
-                if (!ok && p < 1) { preyPos.x += 1.0; preyPos.y -= 0.8; }
+                const reachX = preyBaseX - 24 * dfScale;
+                const reachY = ok ? homeY : homeY - 26 * dfScale;
+                if (!ok && p < 1) { preyPos.x += dfScale; preyPos.y -= 0.8 * dfScale; }
                 if (p < 0.5) {
                     const e = ease(p / 0.5);
                     dragonflyPos.targetX = homeX + (reachX - homeX) * e;
@@ -660,14 +690,14 @@
 
             if (preyPos.active) drawPrey(preyPos.x, preyPos.y, t);
             drawDragonfly(dragonflyPos.x, dragonflyPos.y, flap, facing, tilt);
-            if (carry) drawPrey(dragonflyPos.x + facing * 16, dragonflyPos.y + 1, t);
+            if (carry) drawPrey(dragonflyPos.x + facing * 16 * dfScale, dragonflyPos.y + 1, t);
 
             if (dfAnimState !== 'IDLE' && dfBannerText) {
                 dfCtx.save();
-                dfCtx.font = '900 13px Nunito, sans-serif';
+                dfCtx.font = `900 ${Math.round(13 * dfScale)}px Nunito, sans-serif`;
                 dfCtx.fillStyle = dfBannerColor;
                 dfCtx.textAlign = 'center';
-                dfCtx.fillText(dfBannerText, dfW / 2, 22);
+                dfCtx.fillText(dfBannerText, dfW / 2, 22 * dfScale);
                 dfCtx.restore();
             }
             requestAnimationFrame(dragonflyGameLoop);
@@ -675,7 +705,7 @@
 
         function drawPrey(x, y, t) {
             const c = dfCtx;
-            c.save(); c.translate(x, y);
+            c.save(); c.translate(x, y); c.scale(dfScale, dfScale);
             const w = Math.sin(t * 25) * 4;
             c.fillStyle = 'rgba(203,213,225,0.85)';
             c.beginPath();
@@ -694,6 +724,7 @@
             const c = dfCtx;
             c.save();
             c.translate(x, y);
+            c.scale(dfScale, dfScale);
             c.scale(facing, 1);
             c.rotate(tilt);
 
@@ -876,7 +907,7 @@
                     ? "bg-indigo-600 text-white shadow-xs font-black" 
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold";
                 html += `
-                    <button onclick="toggleTable(${t})" class="py-1 rounded-lg text-xs transition ${activeClass}">
+                    <button onclick="toggleTable(${t})" class="py-1.5 rounded-lg text-xs transition ${activeClass}">
                         Bảng ${t}
                     </button>
                 `;
@@ -944,7 +975,7 @@
             document.getElementById('num-a').textContent = currentNumA;
             document.getElementById('num-b').textContent = currentNumB;
             document.getElementById('ans-text').textContent = '?';
-            document.getElementById('ans-box').className = "w-16 h-12 sm:w-20 sm:h-16 bg-slate-50 border-2 border-indigo-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-800 shadow-inner";
+            document.getElementById('ans-box').className = "w-20 h-16 sm:w-28 sm:h-20 bg-slate-50 border-2 border-indigo-400 rounded-xl flex items-center justify-center text-4xl sm:text-5xl font-black text-slate-800 shadow-inner";
 
             const badge = document.getElementById('spaced-badge');
             if (pick.source === 'review') {
@@ -1021,7 +1052,7 @@
                 saveLocalStorageData();
                 updateScoreDisplay();
 
-                document.getElementById('ans-box').className = "w-16 h-12 sm:w-20 sm:h-16 bg-rose-50 border-2 border-rose-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-rose-600 shadow-inner shake-err";
+                document.getElementById('ans-box').className = "w-20 h-16 sm:w-28 sm:h-20 bg-rose-50 border-2 border-rose-400 rounded-xl flex items-center justify-center text-4xl sm:text-5xl font-black text-rose-600 shadow-inner shake-err";
                 setFeedbackMsg(`Chưa chính xác! Bé nhẩm lại bảng cửu chương <strong>${currentNumA}</strong> nhe! 💪`, 'wrong');
                 document.getElementById('mastered-btn').classList.add('hidden');
                 setTimeout(clearInput, 1000);
@@ -1055,7 +1086,7 @@
             currentMode = mode;
             clearInterval(challengeTimer);
             isChallengeActive = false;
-            const base = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 ";
+            const base = "py-1 px-2.5 rounded-lg text-[0.6875rem] font-extrabold transition flex items-center gap-1 ";
             const styles = { practice: ['mode-practice-btn', 'bg-indigo-600'], review: ['mode-review-btn', 'bg-rose-500'], challenge: ['mode-challenge-btn', 'bg-amber-500'] };
             Object.keys(styles).forEach(m => {
                 const el = document.getElementById(styles[m][0]);
@@ -1136,9 +1167,9 @@
                 const v = starsByDay[d.key] || 0;
                 const h = Math.max(2, Math.round(v / max * 36));
                 return `<div class="flex-1 flex flex-col items-center justify-end h-full">
-                    <span class="text-[9px] font-bold text-amber-700">${v || ''}</span>
+                    <span class="text-[0.5625rem] font-bold text-amber-700">${v || ''}</span>
                     <div class="w-full max-w-[22px] bg-amber-400 rounded-t" style="height:${h}px"></div>
-                    <span class="text-[9px] text-slate-400">${d.label}</span></div>`;
+                    <span class="text-[0.5625rem] text-slate-400">${d.label}</span></div>`;
             }).join('');
         }
 
@@ -1155,13 +1186,13 @@
                 if (it.mastered) {
                     return `<div class="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-between opacity-70">
                         <span class="font-extrabold text-slate-500">${eq}</span>
-                        <button onclick="toggleMastered('${it.k}')" class="text-[10px] bg-white border border-slate-300 text-slate-600 font-bold px-2 py-0.5 rounded-md">✅ Đã thuộc · Hoàn tác</button>
+                        <button onclick="toggleMastered('${it.k}')" class="text-[0.625rem] bg-white border border-slate-300 text-slate-600 font-bold px-2 py-0.5 rounded-md">✅ Đã thuộc · Hoàn tác</button>
                     </div>`;
                 }
                 return `<div class="bg-amber-50 border border-amber-200 p-2 rounded-xl flex items-center justify-between gap-2">
                     <div><div class="font-extrabold text-amber-900">${eq}</div>
-                    <div class="text-[10px] text-amber-700 font-bold">Sai ${it.wrongCount} lần · ôn lại: ${whenLabel(it.due)}</div></div>
-                    <button onclick="toggleMastered('${it.k}')" class="text-[10px] bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-2 py-1 rounded-md shrink-0">Đã thuộc ✓</button>
+                    <div class="text-[0.625rem] text-amber-700 font-bold">Sai ${it.wrongCount} lần · ôn lại: ${whenLabel(it.due)}</div></div>
+                    <button onclick="toggleMastered('${it.k}')" class="text-[0.625rem] bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-2 py-1 rounded-md shrink-0">Đã thuộc ✓</button>
                 </div>`;
             }).join('');
         }
@@ -1224,7 +1255,7 @@
                 html += `
                     <div class="bg-indigo-50/50 border border-indigo-100 p-2 rounded-xl text-xs">
                         <div class="font-black text-indigo-700 text-center border-b border-indigo-100 pb-1 mb-1">Bảng ${a}</div>
-                        <div class="space-y-0.5 text-slate-600 font-semibold text-[11px]">
+                        <div class="space-y-0.5 text-slate-600 font-semibold text-[0.6875rem]">
                 `;
                 for (let b = 1; b <= 10; b++) {
                     html += `<div>${a} × ${b} = <strong class="text-slate-800">${a * b}</strong></div>`;
