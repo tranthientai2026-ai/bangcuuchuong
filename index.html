@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bé Giỏi Bảng Cửu Chương</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bé Giỏi Bảng Cửu Chương v2.3</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -14,10 +14,14 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: 'Nunito', sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
         .shake-err {
@@ -30,171 +34,192 @@
             40%, 60% { transform: translate3d(6px, 0, 0); }
         }
 
-        .pop-in {
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(to bottom, #f0fdf4, #dcfce7);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid #bbf7d0;
         }
-        @keyframes popIn {
-            from { transform: scale(0.7); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-700 flex flex-col justify-between p-2 sm:p-4">
+<body class="bg-slate-100 h-screen text-slate-700 flex flex-col justify-between p-1.5 sm:p-2.5 overflow-hidden">
 
     <!-- HEADER -->
-    <header class="max-w-4xl w-full mx-auto bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center justify-between gap-2">
-        <div class="flex items-center space-x-2.5">
-            <div class="w-10 h-10 bg-amber-400 rounded-xl flex items-center justify-center text-white text-xl font-black shadow-sm">
+    <header class="max-w-4xl w-full mx-auto bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center text-white text-base font-black shadow-xs">
                 ⭐
             </div>
             <div>
-                <h1 class="text-base sm:text-lg font-extrabold text-slate-800 leading-tight">Bé Giỏi Bảng Cửu Chương</h1>
-                <p class="text-[11px] text-slate-400 font-semibold">Ôn tập thông minh • Âm thanh Audition • Giọng đọc</p>
+                <h1 class="text-sm sm:text-base font-black text-slate-800 leading-none">Bé Giỏi Bảng Cửu Chương</h1>
+                <p class="text-[10px] text-slate-400 font-bold hidden sm:block">Phiên bản v2.3 • Ôn tập thông minh & Chuồn chuồn bắt mồi</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <button onclick="openTableModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition">
-                <i class="fa-solid fa-book-open"></i> <span class="hidden sm:inline">Xem bảng</span>
+        <div class="flex items-center gap-1.5">
+            <button onclick="openTableModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 transition">
+                <i class="fa-solid fa-book-open"></i> <span>Xem bảng</span>
             </button>
-            <button onclick="openParentModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition">
+            <button onclick="openParentModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 transition">
                 <i class="fa-solid fa-chart-pie text-indigo-500"></i> <span class="hidden sm:inline">Phụ huynh</span>
             </button>
-            <button onclick="toggleSound()" id="sound-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-1.5 w-8 h-8 rounded-xl text-xs transition flex items-center justify-center">
+            <button onclick="toggleSound()" id="sound-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-1 w-7 h-7 rounded-lg text-xs transition flex items-center justify-center">
                 <i class="fa-solid fa-volume-high" id="sound-icon"></i>
             </button>
         </div>
     </header>
 
     <!-- MAIN APP CONTAINER -->
-    <main class="max-w-4xl w-full mx-auto my-3 flex-1 flex flex-col gap-3">
+    <main class="max-w-4xl w-full mx-auto my-1 flex-1 flex flex-col gap-1.5 min-h-0 justify-between">
 
-        <!-- SETUP BAR: CHỌN BẢNG CỬU CHƯƠNG (2-9) -->
-        <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
-                    <i class="fa-solid fa-list-check text-indigo-500"></i> Chọn bảng cửu chương muốn ôn:
+        <!-- DRAGONFLY MINI-GAME CANVAS -->
+        <div class="canvas-container relative shadow-xs shrink-0">
+            <canvas id="dragonflyCanvas"></canvas>
+            <div class="absolute top-1.5 left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded-full text-[11px] font-black text-slate-700 shadow-xs flex items-center gap-1">
+                <span>🔥 Streak:</span>
+                <span id="canvas-streak-text" class="text-emerald-600">0</span>
+            </div>
+        </div>
+
+        <!-- SETUP BAR: CHỌN BẢNG (2-9) & THỜI GIAN CÂU HỎI -->
+        <div class="bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex flex-col gap-1 shrink-0">
+            <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-700">
+                <span class="flex items-center gap-1">
+                    <i class="fa-solid fa-list-check text-indigo-500"></i> Chọn bảng ôn tập:
                 </span>
-                <button onclick="selectAllTables()" class="text-[11px] font-bold text-indigo-600 hover:underline">
+                <button onclick="selectAllTables()" class="text-indigo-600 hover:underline">
                     Chọn tất cả (2-9)
                 </button>
             </div>
 
-            <div class="grid grid-cols-8 gap-1.5" id="tables-selector-grid">
+            <div class="grid grid-cols-8 gap-1" id="tables-selector-grid">
                 <!-- Dynamic Render Buttons 2-9 -->
+            </div>
+
+            <!-- TÙY CHỌN THỜI GIAN MỖI CÂU -->
+            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] font-bold text-slate-600">
+                <span class="flex items-center gap-1"><i class="fa-regular fa-clock text-amber-500"></i> Thời gian/câu:</span>
+                <div class="flex gap-1">
+                    <button onclick="setPerQuestionTimer(5)" id="qtimer-5" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">5s</button>
+                    <button onclick="setPerQuestionTimer(10)" id="qtimer-10" class="px-2 py-0.5 rounded bg-indigo-600 text-white font-black transition">10s</button>
+                    <button onclick="setPerQuestionTimer(15)" id="qtimer-15" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">15s</button>
+                    <button onclick="setPerQuestionTimer(0)" id="qtimer-0" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">∞</button>
+                </div>
             </div>
         </div>
 
         <!-- MODE SELECTOR & STATS BAR -->
-        <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-            <!-- Mode Buttons -->
-            <div class="flex gap-1.5 w-full sm:w-auto">
-                <button id="mode-practice-btn" onclick="setMode('practice')" class="flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow-sm">
-                    <i class="fa-solid fa-graduation-cap"></i> Luyện tập tự do
+        <div class="bg-white rounded-xl p-1.5 shadow-xs border border-slate-200 flex items-center justify-between gap-2 shrink-0">
+            <div class="flex gap-1">
+                <button id="mode-practice-btn" onclick="setMode('practice')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-indigo-600 text-white shadow-xs">
+                    <i class="fa-solid fa-graduation-cap"></i> Luyện tập
                 </button>
-                <button id="mode-challenge-btn" onclick="setMode('challenge')" class="flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-indigo-50">
+                <button id="mode-challenge-btn" onclick="setMode('challenge')" class="py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50">
                     <i class="fa-solid fa-stopwatch text-amber-500"></i> Thử thách 60s
                 </button>
             </div>
 
-            <!-- Stats Bar -->
-            <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                <div class="flex items-center gap-2 text-xs font-bold">
-                    <span id="timer-badge" class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg border border-amber-200 flex items-center gap-1 hidden">
-                        <i class="fa-solid fa-clock text-amber-500"></i> <strong id="timer-val" class="text-amber-800">60s</strong>
-                    </span>
-                    <span class="bg-orange-50 text-orange-700 px-2.5 py-1 rounded-lg border border-orange-200 flex items-center gap-1">
-                        <i class="fa-solid fa-fire text-orange-500"></i> Chuỗi: <strong id="streak-num" class="text-orange-800">0</strong>
-                    </span>
-                    <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
-                        <i class="fa-solid fa-star text-emerald-500"></i> Điểm: <strong id="score-num" class="text-emerald-800">0</strong>
-                    </span>
-                </div>
+            <div class="flex items-center gap-1.5 text-[11px] font-extrabold">
+                <span id="timer-badge" class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-200 hidden">
+                    ⏱️ <strong id="timer-val">60s</strong>
+                </span>
+                <span class="bg-orange-50 text-orange-700 px-2 py-0.5 rounded border border-orange-200">
+                    🔥 Chuỗi: <strong id="streak-num">0</strong>
+                </span>
+                <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
+                    ⭐ Điểm: <strong id="score-num">0</strong>
+                </span>
             </div>
         </div>
 
-        <!-- MAIN GAME WORKSPACE (2 COLUMNS) -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
+        <!-- MAIN GAME WORKSPACE (COMPACT 2 COLUMNS) -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-stretch flex-1 min-h-0">
 
-            <!-- LEFT: QUESTION CARD & DISPLAY -->
-            <div class="md:col-span-7 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center justify-between min-h-[360px] relative">
+            <!-- LEFT: QUESTION CARD -->
+            <div class="md:col-span-7 bg-white rounded-xl p-2.5 shadow-xs border border-slate-200 flex flex-col items-center justify-between relative overflow-hidden">
 
-                <!-- Priority Badge for Spaced Repetition & Audio Read Button -->
-                <div class="w-full flex justify-between items-center">
-                    <span id="spaced-badge" class="text-[10px] font-extrabold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200 flex items-center gap-1 hidden">
-                        <i class="fa-solid fa-rotate text-amber-500"></i> Câu bé hay quên - Ôn lại
+                <!-- PER QUESTION COUNTDOWN BAR -->
+                <div class="absolute top-0 left-0 right-0 h-1 bg-slate-100">
+                    <div id="qTimerBar" class="h-full bg-emerald-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div>
+                </div>
+
+                <div class="w-full flex justify-between items-center mt-0.5">
+                    <span id="spaced-badge" class="text-[9px] font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 hidden">
+                        <i class="fa-solid fa-rotate"></i> Ôn lại
                     </span>
-                    <div class="flex items-center gap-2 ml-auto">
-                        <button onclick="readQuestionSpeech()" title="Đọc to đề bài" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 transition">
+                    <div class="flex items-center gap-1.5 ml-auto">
+                        <span id="qTimerText" class="text-[11px] font-black text-slate-400">10s</span>
+                        <button onclick="readQuestionSpeech()" title="Đọc to đề bài" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-extrabold px-2 py-0.5 rounded-lg text-[11px] flex items-center gap-1 transition">
                             <i class="fa-solid fa-volume-high"></i> Đọc đề
                         </button>
-                        <span id="streak-toast" class="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md hidden">
-                            🔥 Combo x2
-                        </span>
                     </div>
                 </div>
 
                 <!-- MAIN QUESTION BOX -->
-                <div class="my-4 text-center">
-                    <div class="text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">Phép tính</div>
-                    <div class="text-5xl sm:text-6xl font-black text-slate-800 flex items-center justify-center gap-3">
+                <div class="my-1 text-center">
+                    <div class="text-4xl sm:text-5xl font-black text-slate-800 flex items-center justify-center gap-2">
                         <span id="num-a" class="text-indigo-600">?</span>
-                        <span class="text-pink-500 font-bold">×</span>
+                        <span class="text-pink-500 font-extrabold">×</span>
                         <span id="num-b" class="text-emerald-600">?</span>
-                        <span class="text-slate-400 font-bold">=</span>
-                        <div id="ans-box" class="w-20 h-16 sm:w-24 sm:h-20 bg-slate-50 border-2 border-indigo-400 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black text-slate-800 shadow-inner">
+                        <span class="text-slate-400 font-extrabold">=</span>
+                        <div id="ans-box" class="w-16 h-12 sm:w-20 sm:h-16 bg-slate-50 border-2 border-indigo-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-800 shadow-inner">
                             <span id="ans-text" class="text-indigo-600">?</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- VOICE INPUT BUTTON FOR KIDS -->
-                <div class="w-full flex justify-center mb-1">
-                    <button id="mic-btn" onclick="toggleVoiceRecognition()" class="w-full sm:w-auto bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center gap-2 text-sm">
-                        <i class="fa-solid fa-microphone text-lg" id="mic-icon"></i>
-                        <span id="mic-text">Bé bấm vào đây để NÓI ĐÁP ÁN 🎙️</span>
+                <!-- VOICE INPUT BUTTON -->
+                <div class="w-full flex justify-center">
+                    <button id="mic-btn" onclick="toggleVoiceRecognition()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold py-1.5 rounded-xl shadow-xs active:scale-95 transition flex items-center justify-center gap-1.5 text-xs">
+                        <i class="fa-solid fa-microphone text-sm" id="mic-icon"></i>
+                        <span id="mic-text">Bấm để NÓI ĐÁP ÁN 🎙️</span>
                     </button>
                 </div>
 
-                <!-- FEEDBACK & HINT MESSAGE BOX -->
-                <div id="feedback-msg" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-center text-xs sm:text-sm font-bold text-slate-600 min-h-[50px] flex items-center justify-center">
+                <!-- FEEDBACK MSG BOX -->
+                <div id="feedback-msg" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 my-1 text-center text-xs font-extrabold text-slate-600">
                     Chọn các bảng cửu chương ở trên rùi bắt đầu nhe bé!
                 </div>
 
-                <!-- NEXT / SKIP BUTTON -->
-                <div class="w-full flex justify-end mt-2">
-                    <button onclick="skipQuestion()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
-                        Bỏ qua câu này <i class="fa-solid fa-forward"></i>
+                <!-- SKIP BUTTON -->
+                <div class="w-full flex justify-end">
+                    <button onclick="skipQuestion()" class="text-[10px] font-extrabold text-slate-400 hover:text-slate-600 transition flex items-center gap-1">
+                        Bỏ qua <i class="fa-solid fa-forward"></i>
                     </button>
                 </div>
 
             </div>
 
-            <!-- RIGHT: NUMPAD (ON-SCREEN KEYBOARD) -->
-            <div class="md:col-span-5 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col justify-center">
-                <div class="text-xs font-bold text-slate-400 mb-2 text-center uppercase tracking-wider">Bàn phím nhập đáp án</div>
-                
-                <div class="grid grid-cols-3 gap-2 mb-2">
-                    <button onclick="pressNumpad('1')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">1</button>
-                    <button onclick="pressNumpad('2')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">2</button>
-                    <button onclick="pressNumpad('3')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">3</button>
-                    <button onclick="pressNumpad('4')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">4</button>
-                    <button onclick="pressNumpad('5')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">5</button>
-                    <button onclick="pressNumpad('6')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">6</button>
-                    <button onclick="pressNumpad('7')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">7</button>
-                    <button onclick="pressNumpad('8')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">8</button>
-                    <button onclick="pressNumpad('9')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">9</button>
-                    <button onclick="clearInput()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm py-3 rounded-xl transition flex items-center justify-center">
-                        <i class="fa-solid fa-eraser text-lg"></i>
+            <!-- RIGHT: NUMPAD -->
+            <div class="md:col-span-5 bg-white rounded-xl p-2 shadow-xs border border-slate-200 flex flex-col justify-center">
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button onclick="pressNumpad('1')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">1</button>
+                    <button onclick="pressNumpad('2')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">2</button>
+                    <button onclick="pressNumpad('3')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">3</button>
+                    <button onclick="pressNumpad('4')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">4</button>
+                    <button onclick="pressNumpad('5')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">5</button>
+                    <button onclick="pressNumpad('6')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">6</button>
+                    <button onclick="pressNumpad('7')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">7</button>
+                    <button onclick="pressNumpad('8')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">8</button>
+                    <button onclick="pressNumpad('9')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">9</button>
+                    <button onclick="clearInput()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs py-2 rounded-lg transition flex items-center justify-center">
+                        <i class="fa-solid fa-eraser text-base"></i>
                     </button>
-                    <button onclick="pressNumpad('0')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-extrabold text-2xl py-3 rounded-xl border border-slate-200 active:scale-95 transition shadow-xs">0</button>
-                    <button onclick="submitAnswer()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm py-3 rounded-xl shadow-sm transition flex items-center justify-center">
-                        <i class="fa-solid fa-check text-xl"></i>
+                    <button onclick="pressNumpad('0')" class="bg-slate-100 hover:bg-indigo-50 text-slate-800 font-black text-xl py-2 rounded-lg border border-slate-200 active:scale-95 transition">0</button>
+                    <button onclick="submitAnswer()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-2 rounded-lg shadow-xs transition flex items-center justify-center">
+                        <i class="fa-solid fa-check text-lg"></i>
                     </button>
                 </div>
             </div>
@@ -204,15 +229,15 @@
     </main>
 
     <!-- FOOTER -->
-    <footer class="text-center text-[11px] text-slate-400 py-1">
-        Bé Giỏi Bảng Cửu Chương • Học thông minh với Spaced Repetition & Audition Sound
+    <footer class="text-center text-[10px] text-slate-400 py-0.5 shrink-0">
+        Bé Giỏi Bảng Cửu Chương v2.3 • Học thông minh với Spaced Repetition
     </footer>
 
-    <!-- MODAL 1: GÓC PHỤ HUYNH & THỐNG KÊ SPACED REPETITION -->
+    <!-- MODAL 1: GÓC PHỤ HUYNH -->
     <div id="parent-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
         <div class="bg-white w-full max-w-md rounded-2xl p-4 shadow-xl flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
-                <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+                <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie text-indigo-500"></i> Góc Phụ Huynh & Thống Kê
                 </h3>
                 <button onclick="closeParentModal()" class="text-slate-400 hover:text-slate-600 text-base font-bold">
@@ -221,7 +246,6 @@
             </div>
 
             <div class="flex-1 overflow-y-auto space-y-3 pr-1 my-2 text-xs">
-                <!-- Overview Stats -->
                 <div class="grid grid-cols-3 gap-2 text-center">
                     <div class="bg-indigo-50 border border-indigo-100 p-2 rounded-xl">
                         <span class="text-slate-400 block text-[10px]">Đã làm</span>
@@ -237,14 +261,11 @@
                     </div>
                 </div>
 
-                <!-- Hardest Questions (Spaced Repetition priority) -->
                 <div>
                     <div class="font-extrabold text-slate-700 mb-1.5 flex items-center gap-1">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Các phép tính bé hay làm sai nhất:
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Phép tính bé hay làm sai / quá giờ:
                     </div>
-                    <div id="parent-mistakes-list" class="space-y-1.5">
-                        <!-- Dynamic render -->
-                    </div>
+                    <div id="parent-mistakes-list" class="space-y-1.5"></div>
                 </div>
             </div>
 
@@ -263,17 +284,15 @@
     <div id="table-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
         <div class="bg-white w-full max-w-2xl rounded-2xl p-4 shadow-xl flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
-                <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-book-open text-indigo-500"></i> Bảng Cửu Chương Từ 2 Đến 9
+                <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-book-open text-indigo-500"></i> Bảng Cửu Chương (2 - 9)
                 </h3>
                 <button onclick="closeTableModal()" class="text-slate-400 hover:text-slate-600 text-base font-bold">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 gap-3 p-1" id="multiplication-tables-container">
-                <!-- Dynamic Render Tables -->
-            </div>
+            <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-1" id="multiplication-tables-container"></div>
 
             <div class="pt-2 border-t border-slate-100 text-right">
                 <button onclick="closeTableModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-xl text-xs transition">
@@ -285,8 +304,25 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Web Audio API & Audition-Style Sound Synthesizer
+        // Web Audio Synthesizer
         let audioCtx = null;
+
+        // Dragonfly Canvas Engine State
+        let dfCanvas, dfCtx;
+        let dragonflyPos = { x: 80, y: 60, targetX: 80, targetY: 60 };
+        let preyPos = { x: 280, y: 60, active: true };
+        let dfAnimState = 'IDLE'; // 'IDLE' | 'ATTACK_SUCCESS' | 'ATTACK_MISS'
+        let dfAnimProgress = 0;
+        let dfBannerText = '';
+        let dfBannerColor = '#10b981';
+
+        // Per question timer state
+        let perQuestionTimerSetting = 10;
+        let perQuestionInterval = null;
+        let perQuestionTimeLeft = 10;
+
+        // TTS Voices Buffer
+        let availableVoices = [];
 
         function initAudio() {
             if (!audioCtx) {
@@ -316,9 +352,8 @@
                     osc.stop(now + 0.05);
                 } 
                 else if (type === 'correct') {
-                    // Audition Pitch Shift scale based on streak (C5 -> D5 -> E5 -> F5 -> G5 -> A5 -> B5 -> C6...)
-                    const baseFreq = 523.25; // C5
-                    const scaleIntervals = [0, 2, 4, 5, 7, 9, 11, 12]; // Major scale steps
+                    const baseFreq = 523.25;
+                    const scaleIntervals = [0, 2, 4, 5, 7, 9, 11, 12];
                     const stepIndex = Math.min(streakCount - 1, scaleIntervals.length - 1);
                     const semitones = scaleIntervals[stepIndex];
                     const freq = baseFreq * Math.pow(2, semitones / 12);
@@ -335,7 +370,6 @@
                     osc.stop(now + 0.25);
                 } 
                 else if (type === 'wrong') {
-                    // Gentle low wobble for incorrect answer (no correct answer reveal)
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sawtooth';
@@ -349,8 +383,7 @@
                     osc.stop(now + 0.3);
                 } 
                 else if (type === 'fanfare') {
-                    // Audition Perfect Arpeggio Bell Synth
-                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
                     notes.forEach((f, idx) => {
                         const osc = audioCtx.createOscillator();
                         const gain = audioCtx.createGain();
@@ -367,9 +400,9 @@
             } catch (e) {}
         }
 
-        // Game State & Spaced Repetition Engine
+        // Game State Engine
         let selectedTables = [2, 3, 4, 5, 6, 7, 8, 9];
-        let currentMode = 'practice'; // 'practice' | 'challenge'
+        let currentMode = 'practice';
 
         let currentNumA = 2;
         let currentNumB = 2;
@@ -388,7 +421,7 @@
         let isChallengeActive = false;
         let soundEnabled = true;
 
-        // Speech Recognition & Speech Synthesis (Voice Feature)
+        // Speech Recognition Setup
         let isListening = false;
         let recognition = null;
 
@@ -403,9 +436,9 @@
                 isListening = true;
                 const micBtn = document.getElementById('mic-btn');
                 if (micBtn) {
-                    micBtn.className = "w-full sm:w-auto bg-rose-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow-md animate-pulse flex items-center justify-center gap-2 text-sm";
-                    document.getElementById('mic-icon').className = "fa-solid fa-microphone-lines text-lg text-yellow-300";
-                    document.getElementById('mic-text').textContent = "Đang lắng nghe... Bé hãy nói số kết quả!";
+                    micBtn.className = "w-full bg-rose-600 text-white font-black py-1.5 rounded-xl shadow-xs animate-pulse flex items-center justify-center gap-1.5 text-xs";
+                    document.getElementById('mic-icon').className = "fa-solid fa-microphone-lines text-sm text-yellow-300";
+                    document.getElementById('mic-text').textContent = "Đang lắng nghe... Bé hãy nói đáp án!";
                 }
             };
 
@@ -414,9 +447,9 @@
                 parseVoiceAnswer(transcript);
             };
 
-            recognition.onerror = function(event) {
+            recognition.onerror = function() {
                 stopListeningUI();
-                setFeedbackMsg(`Chưa nghe rõ câu trả lời, bé thử bấm nút micro nói lại hoặc dùng bàn phím nhe!`, 'neutral');
+                setFeedbackMsg(`Chưa nghe rõ câu trả lời, bé thử nói lại hoặc bấm bàn phím nhe!`, 'neutral');
             };
 
             recognition.onend = function() {
@@ -427,7 +460,7 @@
         function toggleVoiceRecognition() {
             playSound('click');
             if (!recognition) {
-                alert("Trình duyệt hiện tại không hỗ trợ nhận diện giọng nói. Bé hãy sử dụng bàn phím số nhe!");
+                alert("Trình duyệt hiện tại chưa hỗ trợ nhận diện giọng nói. Bé hãy sử dụng bàn phím số nhe!");
                 return;
             }
             if (isListening) {
@@ -441,13 +474,12 @@
             isListening = false;
             const micBtn = document.getElementById('mic-btn');
             if (micBtn) {
-                micBtn.className = "w-full sm:w-auto bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-extrabold px-5 py-2.5 rounded-2xl shadow-md active:scale-95 transition flex items-center justify-center gap-2 text-sm";
-                document.getElementById('mic-icon').className = "fa-solid fa-microphone text-lg";
-                document.getElementById('mic-text').textContent = "Bé bấm vào đây để NÓI ĐÁP ÁN 🎙️";
+                micBtn.className = "w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold py-1.5 rounded-xl shadow-xs active:scale-95 transition flex items-center justify-center gap-1.5 text-xs";
+                document.getElementById('mic-icon').className = "fa-solid fa-microphone text-sm";
+                document.getElementById('mic-text').textContent = "Bấm để NÓI ĐÁP ÁN 🎙️";
             }
         }
 
-        // Parse voice spoken input into digits
         function parseVoiceAnswer(spokenText) {
             const numberMap = {
                 "không": 0, "một": 1, "mốt": 1, "hai": 2, "ba": 3, "bốn": 4, "tư": 4, "năm": 5, "lăm": 5,
@@ -471,48 +503,38 @@
                 document.getElementById('ans-text').textContent = currentAnswerInput;
                 submitAnswer();
             } else {
-                setFeedbackMsg(`Bé vừa nói "${spokenText}", máy chưa đọc được số. Bé nói lại số rõ hơn nhe!`, 'neutral');
+                setFeedbackMsg(`Bé vừa nói "${spokenText}", máy chưa đọc được số. Bé nói lại rõ hơn nhe!`, 'neutral');
             }
         }
 
-        // Text-To-Speech: Read question out loud
+        // Text-To-Speech: Read Question
+        function loadVoices() {
+            if ('speechSynthesis' in window) {
+                availableVoices = window.speechSynthesis.getVoices();
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
+
         function readQuestionSpeech() {
             if (!soundEnabled || !('speechSynthesis' in window)) return;
             try {
                 window.speechSynthesis.cancel();
-                if (window.speechSynthesis.paused) {
-                    window.speechSynthesis.resume();
-                }
+                
                 const textToRead = `${currentNumA} nhân ${currentNumB} bằng bao nhiêu?`;
                 const utterance = new SpeechSynthesisUtterance(textToRead);
                 utterance.lang = 'vi-VN';
-                utterance.rate = 0.85;
+                utterance.rate = 0.9;
                 utterance.pitch = 1.1;
 
-                const voices = window.speechSynthesis.getVoices();
-                const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
-                if (viVoice) {
-                    utterance.voice = viVoice;
+                if (availableVoices.length === 0) {
+                    availableVoices = window.speechSynthesis.getVoices();
                 }
-
-                window.speechSynthesis.speak(utterance);
-            } catch (e) {}
-        }
-
-        // Text-To-Speech: Speak correct/incorrect feedback
-        function speakFeedbackText(text) {
-            if (!soundEnabled || !('speechSynthesis' in window)) return;
-            try {
-                window.speechSynthesis.cancel();
-                if (window.speechSynthesis.paused) {
-                    window.speechSynthesis.resume();
-                }
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'vi-VN';
-                utterance.rate = 0.95;
-
-                const voices = window.speechSynthesis.getVoices();
-                const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
+                
+                const viVoice = availableVoices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
                 if (viVoice) {
                     utterance.voice = viVoice;
                 }
@@ -529,10 +551,266 @@
         window.onload = function() {
             initWeights();
             loadLocalStorageData();
+            initDragonflyCanvas();
             renderTableSelector();
             renderTableModalContent();
+            setPerQuestionTimer(perQuestionTimerSetting);
             generateQuestion();
+            requestAnimationFrame(dragonflyGameLoop);
         };
+
+        // --- DRAGONFLY CANVAS ENGINE ---
+        function initDragonflyCanvas() {
+            dfCanvas = document.getElementById('dragonflyCanvas');
+            if (!dfCanvas) return;
+            dfCtx = dfCanvas.getContext('2d');
+            resizeDragonflyCanvas();
+            window.addEventListener('resize', resizeDragonflyCanvas);
+        }
+
+        function resizeDragonflyCanvas() {
+            if (!dfCanvas) return;
+            const rect = dfCanvas.parentElement.getBoundingClientRect();
+            dfCanvas.width = rect.width;
+            dfCanvas.height = rect.height;
+            dragonflyPos.x = dfCanvas.width * 0.22;
+            dragonflyPos.y = dfCanvas.height * 0.5;
+            dragonflyPos.targetX = dragonflyPos.x;
+            dragonflyPos.targetY = dragonflyPos.y;
+            preyPos.x = dfCanvas.width * 0.78;
+            preyPos.y = dfCanvas.height * 0.5;
+        }
+
+        function triggerDragonflyAttack(isSuccess) {
+            dfAnimState = isSuccess ? 'ATTACK_SUCCESS' : 'ATTACK_MISS';
+            dfAnimProgress = 0;
+            if (isSuccess) {
+                dfBannerText = 'BẮT ĐƯỢC MỒI! 🎉';
+                dfBannerColor = '#10b981';
+            } else {
+                dfBannerText = 'TRƯỢT MỒI RỒI! 😅';
+                dfBannerColor = '#f43f5e';
+            }
+        }
+
+        function dragonflyGameLoop(timestamp) {
+            if (!dfCtx || !dfCanvas) return;
+            dfCtx.clearRect(0, 0, dfCanvas.width, dfCanvas.height);
+
+            // Cloud background
+            dfCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            dfCtx.beginPath();
+            dfCtx.arc(40, 25, 14, 0, Math.PI * 2);
+            dfCtx.arc(58, 20, 18, 0, Math.PI * 2);
+            dfCtx.arc(76, 25, 14, 0, Math.PI * 2);
+            dfCtx.fill();
+
+            const timeSec = timestamp * 0.003;
+            let wingFlap = Math.sin(timestamp * 0.045);
+
+            if (dfAnimState === 'IDLE') {
+                dragonflyPos.targetX = dfCanvas.width * 0.22 + Math.sin(timeSec) * 10;
+                dragonflyPos.targetY = dfCanvas.height * 0.5 + Math.cos(timeSec * 1.5) * 6;
+                preyPos.y = dfCanvas.height * 0.5 + Math.sin(timeSec * 2) * 8;
+                preyPos.active = true;
+            } else if (dfAnimState === 'ATTACK_SUCCESS') {
+                dfAnimProgress += 0.035;
+                if (dfAnimProgress < 0.5) {
+                    const t = dfAnimProgress / 0.5;
+                    dragonflyPos.targetX = (dfCanvas.width * 0.22) + (preyPos.x - dfCanvas.width * 0.22) * t;
+                    dragonflyPos.targetY = (dfCanvas.height * 0.5) + (preyPos.y - dfCanvas.height * 0.5) * t;
+                } else if (dfAnimProgress < 1.0) {
+                    preyPos.active = false;
+                    const t = (dfAnimProgress - 0.5) / 0.5;
+                    dragonflyPos.targetX = preyPos.x - (preyPos.x - dfCanvas.width * 0.22) * t;
+                    dragonflyPos.targetY = preyPos.y - (preyPos.y - dfCanvas.height * 0.5) * t;
+                } else {
+                    dfAnimState = 'IDLE';
+                    dfAnimProgress = 0;
+                }
+            } else if (dfAnimState === 'ATTACK_MISS') {
+                dfAnimProgress += 0.035;
+                if (dfAnimProgress < 0.5) {
+                    const t = dfAnimProgress / 0.5;
+                    dragonflyPos.targetX = (dfCanvas.width * 0.22) + (preyPos.x - dfCanvas.width * 0.22) * t;
+                    dragonflyPos.targetY = (dfCanvas.height * 0.5) + (preyPos.y - 25 - dfCanvas.height * 0.5) * t;
+                    preyPos.y -= 1.5;
+                } else if (dfAnimProgress < 1.0) {
+                    const t = (dfAnimProgress - 0.5) / 0.5;
+                    dragonflyPos.targetX = preyPos.x - (preyPos.x - dfCanvas.width * 0.22) * t;
+                    dragonflyPos.targetY = (dfCanvas.height * 0.5 - 25) + 25 * t;
+                } else {
+                    dfAnimState = 'IDLE';
+                    dfAnimProgress = 0;
+                }
+            }
+
+            dragonflyPos.x += (dragonflyPos.targetX - dragonflyPos.x) * 0.15;
+            dragonflyPos.y += (dragonflyPos.targetY - dragonflyPos.y) * 0.15;
+
+            if (preyPos.active) {
+                drawPrey(preyPos.x, preyPos.y, timeSec);
+            }
+
+            drawDragonfly(dragonflyPos.x, dragonflyPos.y, wingFlap);
+
+            if (dfAnimState !== 'IDLE' && dfBannerText) {
+                dfCtx.save();
+                dfCtx.font = '900 13px Nunito, sans-serif';
+                dfCtx.fillStyle = dfBannerColor;
+                dfCtx.textAlign = 'center';
+                dfCtx.fillText(dfBannerText, dfCanvas.width / 2, 22);
+                dfCtx.restore();
+            }
+
+            requestAnimationFrame(dragonflyGameLoop);
+        }
+
+        function drawPrey(x, y, timeSec) {
+            dfCtx.save();
+            dfCtx.translate(x, y);
+
+            const wing = Math.sin(timeSec * 25) * 5;
+            dfCtx.fillStyle = 'rgba(203, 213, 225, 0.8)';
+            dfCtx.beginPath();
+            dfCtx.ellipse(-2, -4, 3.5, 7 + wing, Math.PI / 4, 0, Math.PI * 2);
+            dfCtx.ellipse(2, -4, 3.5, 7 + wing, -Math.PI / 4, 0, Math.PI * 2);
+            dfCtx.fill();
+
+            dfCtx.fillStyle = '#334155';
+            dfCtx.beginPath();
+            dfCtx.ellipse(0, 0, 3.5, 6, 0, 0, Math.PI * 2);
+            dfCtx.fill();
+
+            dfCtx.fillStyle = '#ef4444';
+            dfCtx.beginPath();
+            dfCtx.arc(-1.5, -2.5, 1.2, 0, Math.PI * 2);
+            dfCtx.arc(1.5, -2.5, 1.2, 0, Math.PI * 2);
+            dfCtx.fill();
+
+            dfCtx.restore();
+        }
+
+        function drawDragonfly(x, y, wingFlap) {
+            dfCtx.save();
+            dfCtx.translate(x, y);
+
+            // Double translucent wings
+            dfCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            dfCtx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+            dfCtx.lineWidth = 1;
+
+            const wingAngle = wingFlap * 0.25;
+
+            dfCtx.save();
+            dfCtx.rotate(wingAngle);
+            dfCtx.beginPath();
+            dfCtx.ellipse(7, -13, 18, 4, Math.PI / 6, 0, Math.PI * 2);
+            dfCtx.ellipse(-7, -13, 18, 4, -Math.PI / 6, 0, Math.PI * 2);
+            dfCtx.fill();
+            dfCtx.stroke();
+            dfCtx.restore();
+
+            dfCtx.save();
+            dfCtx.rotate(-wingAngle * 0.8);
+            dfCtx.beginPath();
+            dfCtx.ellipse(8, -5, 14, 3.5, Math.PI / 10, 0, Math.PI * 2);
+            dfCtx.ellipse(-8, -5, 14, 3.5, -Math.PI / 10, 0, Math.PI * 2);
+            dfCtx.fill();
+            dfCtx.stroke();
+            dfCtx.restore();
+
+            // Tail Body
+            dfCtx.fillStyle = '#10b981';
+            dfCtx.beginPath();
+            dfCtx.moveTo(-2, 5);
+            dfCtx.lineTo(2, 5);
+            dfCtx.lineTo(1, 28);
+            dfCtx.lineTo(-1, 28);
+            dfCtx.closePath();
+            dfCtx.fill();
+
+            // Thorax & Head
+            dfCtx.beginPath();
+            dfCtx.ellipse(0, 1, 4, 6.5, 0, 0, Math.PI * 2);
+            dfCtx.fill();
+
+            dfCtx.fillStyle = '#0f172a';
+            dfCtx.beginPath();
+            dfCtx.arc(-3, -3, 3, 0, Math.PI * 2);
+            dfCtx.arc(3, -3, 3, 0, Math.PI * 2);
+            dfCtx.fill();
+
+            dfCtx.fillStyle = '#ffffff';
+            dfCtx.beginPath();
+            dfCtx.arc(-3.8, -4, 0.9, 0, Math.PI * 2);
+            dfCtx.arc(2.2, -4, 0.9, 0, Math.PI * 2);
+            dfCtx.fill();
+
+            dfCtx.restore();
+        }
+
+        // --- PER QUESTION TIMER ---
+        function setPerQuestionTimer(seconds) {
+            perQuestionTimerSetting = seconds;
+            [0, 5, 10, 15].forEach(s => {
+                const btn = document.getElementById(`qtimer-${s}`);
+                if (btn) {
+                    btn.className = (s === seconds)
+                        ? "px-2 py-0.5 rounded bg-indigo-600 text-white font-black transition"
+                        : "px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition";
+                }
+            });
+            startPerQuestionTimer();
+        }
+
+        function startPerQuestionTimer() {
+            clearInterval(perQuestionInterval);
+            const bar = document.getElementById('qTimerBar');
+            const txt = document.getElementById('qTimerText');
+
+            if (perQuestionTimerSetting === 0) {
+                if (bar) bar.style.width = '100%';
+                if (txt) txt.textContent = '∞';
+                return;
+            }
+
+            perQuestionTimeLeft = perQuestionTimerSetting;
+            if (txt) txt.textContent = `${perQuestionTimeLeft}s`;
+            if (bar) bar.style.width = '100%';
+
+            perQuestionInterval = setInterval(() => {
+                perQuestionTimeLeft--;
+                if (perQuestionTimeLeft < 0) {
+                    clearInterval(perQuestionInterval);
+                    handlePerQuestionTimeout();
+                } else {
+                    if (txt) txt.textContent = `${perQuestionTimeLeft}s`;
+                    if (bar) {
+                        const pct = (perQuestionTimeLeft / perQuestionTimerSetting) * 100;
+                        bar.style.width = `${pct}%`;
+                    }
+                }
+            }, 1000);
+        }
+
+        function handlePerQuestionTimeout() {
+            streak = 0;
+            totalAnswered++;
+            
+            // Mark question in Spaced Repetition memory as needing review
+            const key = `${currentNumA}x${currentNumB}`;
+            questionWeights[key] = (questionWeights[key] || 10) + 8;
+            saveLocalStorageData();
+
+            updateScoreDisplay();
+            playSound('wrong');
+            triggerDragonflyAttack(false);
+            setFeedbackMsg(`⏱️ Hết giờ rồi! Phép tính này sẽ được đưa vào danh sách ôn lại.`, 'wrong');
+            setTimeout(() => {
+                generateQuestion();
+            }, 1500);
+        }
 
         function initWeights() {
             for (let a = 2; a <= 9; a++) {
@@ -551,10 +829,10 @@
             for (let t = 2; t <= 9; t++) {
                 const isSelected = selectedTables.includes(t);
                 const activeClass = isSelected 
-                    ? "bg-indigo-600 text-white shadow-sm font-black" 
+                    ? "bg-indigo-600 text-white shadow-xs font-black" 
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold";
                 html += `
-                    <button onclick="toggleTable(${t})" class="py-1.5 rounded-xl text-xs transition ${activeClass}">
+                    <button onclick="toggleTable(${t})" class="py-1 rounded-lg text-xs transition ${activeClass}">
                         Bảng ${t}
                     </button>
                 `;
@@ -613,7 +891,7 @@
             document.getElementById('num-a').textContent = currentNumA;
             document.getElementById('num-b').textContent = currentNumB;
             document.getElementById('ans-text').textContent = '?';
-            document.getElementById('ans-box').className = "w-20 h-16 sm:w-24 sm:h-20 bg-slate-50 border-2 border-indigo-400 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black text-slate-800 shadow-inner";
+            document.getElementById('ans-box').className = "w-16 h-12 sm:w-20 sm:h-16 bg-slate-50 border-2 border-indigo-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-slate-800 shadow-inner";
 
             const spacedBadge = document.getElementById('spaced-badge');
             if (isSpacedRepetitionQuestion) {
@@ -622,11 +900,13 @@
                 spacedBadge.classList.add('hidden');
             }
 
-            setFeedbackMsg(`Điền kết quả hoặc 🎙️ Bấm nút nói đáp án cho phép tính <strong class="text-indigo-600">${currentNumA} × ${currentNumB}</strong>!`, 'neutral');
+            setFeedbackMsg(`Phép tính: <strong class="text-indigo-600">${currentNumA} × ${currentNumB}</strong>`, 'neutral');
             
+            startPerQuestionTimer();
+
             setTimeout(() => {
                 readQuestionSpeech();
-            }, 300);
+            }, 250);
         }
 
         function pressNumpad(num) {
@@ -646,6 +926,8 @@
         function submitAnswer() {
             if (!currentAnswerInput) return;
 
+            clearInterval(perQuestionInterval);
+
             const userAns = parseInt(currentAnswerInput);
             const correctAns = currentNumA * currentNumB;
             const key = `${currentNumA}x${currentNumB}`;
@@ -659,20 +941,15 @@
                 if (streak > maxStreak) maxStreak = streak;
 
                 playSound('correct', streak);
+                triggerDragonflyAttack(true);
 
                 questionWeights[key] = Math.max(5, (questionWeights[key] || 10) - 3);
 
                 if (streak % 5 === 0) {
                     setTimeout(() => playSound('fanfare'), 120);
                     confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-                    showStreakToast(`🌟 PERFECT! Chuỗi ${streak} câu!`);
-                    speakFeedbackText(`Chính xác! Xuất sắc lắm bé! ${currentNumA} nhân ${currentNumB} bằng ${correctAns}`);
                 } else if (streak >= 3) {
                     confetti({ particleCount: 35, spread: 40, origin: { y: 0.6 } });
-                    showStreakToast(`🔥 Combo x${streak}!`);
-                    speakFeedbackText(`Chính xác! Bằng ${correctAns}`);
-                } else {
-                    speakFeedbackText(`Chính xác! Bằng ${correctAns}`);
                 }
 
                 setFeedbackMsg(`🎉 <strong class="text-emerald-600">CHÍNH XÁC!</strong> ${currentNumA} × ${currentNumB} = ${correctAns}`, 'correct');
@@ -686,15 +963,15 @@
             } else {
                 playSound('wrong');
                 streak = 0;
+                triggerDragonflyAttack(false);
 
                 questionWeights[key] = (questionWeights[key] || 10) + 8;
 
                 saveLocalStorageData();
                 updateScoreDisplay();
 
-                document.getElementById('ans-box').className = "w-20 h-16 sm:w-24 sm:h-20 bg-rose-50 border-2 border-rose-400 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black text-rose-600 shadow-inner shake-err";
-                setFeedbackMsg(`Chưa chính xác rùi! Bé suy nghĩ và nhẩm lại bảng cửu chương <strong>${currentNumA}</strong> xem sao nhe! 💪`, 'wrong');
-                speakFeedbackText(`Chưa đúng rồi, bé thử lại nhé!`);
+                document.getElementById('ans-box').className = "w-16 h-12 sm:w-20 sm:h-16 bg-rose-50 border-2 border-rose-400 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-black text-rose-600 shadow-inner shake-err";
+                setFeedbackMsg(`Chưa chính xác! Bé nhẩm lại bảng cửu chương <strong>${currentNumA}</strong> nhe! 💪`, 'wrong');
 
                 setTimeout(() => {
                     clearInput();
@@ -709,16 +986,11 @@
             generateQuestion();
         }
 
-        function showStreakToast(msg) {
-            const toast = document.getElementById('streak-toast');
-            toast.textContent = msg;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 2000);
-        }
-
         function updateScoreDisplay() {
             document.getElementById('score-num').textContent = score;
             document.getElementById('streak-num').textContent = streak;
+            const csText = document.getElementById('canvas-streak-text');
+            if (csText) csText.textContent = streak;
         }
 
         function setFeedbackMsg(msg, type) {
@@ -735,13 +1007,13 @@
             if (mode === 'practice') {
                 clearInterval(challengeTimer);
                 isChallengeActive = false;
-                practiceBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow-sm";
-                challengeBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-indigo-50";
+                practiceBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-indigo-600 text-white shadow-xs";
+                challengeBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50";
                 timerBadge.classList.add('hidden');
                 generateQuestion();
             } else {
-                challengeBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-white shadow-sm";
-                practiceBtn.className = "flex-1 sm:flex-initial py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-indigo-50";
+                challengeBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-amber-500 text-white shadow-xs";
+                practiceBtn.className = "py-1 px-2.5 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 bg-slate-100 text-slate-600 hover:bg-indigo-50";
                 timerBadge.classList.remove('hidden');
                 startChallenge();
             }
@@ -766,7 +1038,6 @@
                     isChallengeActive = false;
                     confetti({ particleCount: 70, spread: 70, origin: { y: 0.5 } });
                     setFeedbackMsg(`⏱️ <strong>HẾT GIỜ!</strong> Bé ghi được <strong>${score} điểm</strong> trong thử thách 60s!`, 'correct');
-                    speakFeedbackText(`Hết giờ rồi! Bé ghi được ${score} điểm. Rất giỏi!`);
                 }
             }, 1000);
         }
